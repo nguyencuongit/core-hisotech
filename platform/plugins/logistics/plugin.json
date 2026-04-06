@@ -1,0 +1,11 @@
+{
+    "id": "botble/logistics",
+    "name": "Logistics",
+    "namespace": "Botble\\Logistics\\",
+    "provider": "Botble\\Logistics\\Providers\\LogisticsServiceProvider",
+    "author": "",
+    "url": "",
+    "version": "1.0.0",
+    "description": "",
+    "minimum_core_version": "7.6.3"
+}

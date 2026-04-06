@@ -1,0 +1,8 @@
+{
+    "name": "Fireworks Effect",
+    "namespace": "Fireworks\\",
+    "provider": "Fireworks\\Providers\\FireworksServiceProvider",
+    "author": "Your Name",
+    "version": "1.0.0",
+    "description": "Click / tap fireworks effect without touching theme"
+}

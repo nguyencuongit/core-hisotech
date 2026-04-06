@@ -1,0 +1,11 @@
+{
+    "id": "botble/viettel-post",
+    "name": "Viettel Post",
+    "namespace": "Botble\\ViettelPost\\",
+    "provider": "Botble\\ViettelPost\\Providers\\ViettelPostServiceProvider",
+    "author": "Dao Duy Quyen",
+    "url": "https://www.facebook.com/daoduyquyen04",
+    "version": "1.0.0",
+    "description": "Tích hợp vận chuyển Viettel Post cho Botble Ecommerce",
+    "minimum_core_version": "7.3.0"
+}
