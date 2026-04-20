@@ -1,6 +1,7 @@
 <?php
 namespace Botble\Logistics\Services\Mappers;
 use Botble\Logistics\Models\shippingProvinceMapping;
+use Botble\Logistics\DTO\ProvinceDTO;
 
 class ProvinceMapper
 {
@@ -22,6 +23,14 @@ class ProvinceMapper
             'states.name as name'
         ])
         ->first();
+    }
+
+    public static function mapViettelPost($data): ProvinceDTO
+    {
+        return new ProvinceDTO(
+            id: $data['PROVINCE_ID'],
+            name: $data['PROVINCE_NAME']
+        );
     }
 
 }

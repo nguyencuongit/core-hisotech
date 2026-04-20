@@ -19,7 +19,8 @@ return new class extends Migration
             $table->string('status')->nullable();       
             $table->string('code')->nullable();  
             $table->decimal('total_fee', 12, 2);
-            $table->text('error')->nullable();          
+            $table->text('status_name')->nullable();          
+            $table->text('localion_currenty')->nullable();          
 
             $table->timestamps();
 

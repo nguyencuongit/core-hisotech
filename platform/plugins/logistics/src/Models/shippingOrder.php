@@ -5,6 +5,8 @@ namespace Botble\Logistics\Models;
 use Botble\Base\Casts\SafeContent;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
+use Botble\Logistics\Enums\ShippingStatus;
+
 
 class shippingOrder extends BaseModel
 {
@@ -16,10 +18,10 @@ class shippingOrder extends BaseModel
         'status',
         'code',
         'total_fee',
-        'error',
+        'status_name',
+        'localion_currenty',
     ];
-
     protected $casts = [
-        'status' => BaseStatusEnum::class,
+        'status' => ShippingStatus::class,
     ];
 }

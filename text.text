@@ -19,21 +19,36 @@ những đơn trong order (pendding) -> tạo đơn vận chuyển thành công 
 4: model
 delivery: id , order-id , status , created_at , code-delivery , total , type(khách trả. mk trả) , shipping-fee(phí ship), collection(thu hộ) ...
 
-
-
 plugin: Logistics
+=> thêm việc : làm dashboard
++ tổng hợp số tiền ship (chung, riêng của từng đơn vị),
++ tổng hợp đơn đang giao, đã giao, huỷ (% của từng loại theo tháng);
++.....
+kết quả: xong;
 
-
-
-
-
-
-II: Địa điểm trong botble.
+II: Địa điểm trong
 - ẩn quốc gia: mặc định Việt Nam.
 - có bảng tỉnh/ thành phố. kiểm tra xong( bài toán: làm sao để biết tỉnh này thì lưu id của hãng giao hàng để sau sử dụng.)
-- có bảng quận/ huyện. ( cái này có khi phải tính toán vì có quá nhiều quận xã. tận 3321 đơn vị). 
+- có bảng quận/ huyện. (Xong)
 
+3: nhân viên
+ 
+4: commission
 
-III: làm về plugin affilate, đồng chia. ( từ từ suy tính )
+5: plugin accounting ( kế toán, xuất hoá đơn, chữ kí điện tử, thôgns kê ) (tích hợp misa)
 
-IV: plugin làm xuất hoá đơn 
+6: plugin inventory (kho)
+
+7: thanh toán( thêm liên kết với ngân hàng, hoặc 1 bên khác );
+
+8: Social (nội bộ, các facebook, youtube, tiktok,...)
+
+9: Task (công việc)
+
+10: Projects
+
+11: sàn thương mại điện tử khác;
+
+12: làm về plugin affilate, đồng chia. ( từ từ suy tính )
+
+13: tính hợp AI

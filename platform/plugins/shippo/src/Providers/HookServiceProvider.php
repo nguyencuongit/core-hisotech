@@ -75,7 +75,6 @@ class HookServiceProvider extends ServiceProvider
                 }
             }
         }
-
         return $settings . view('plugins/shippo::settings', compact('logFiles'))->render();
     }
 }

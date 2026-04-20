@@ -31,7 +31,6 @@ class ShippingProviderController extends BaseController
         foreach($shippingProvider as $item){
             $nameProvider[$item->id] = $item->name;
         }
-
         $address_admin = DB::table('settings')
             ->where('key', 'like', 'logistics_admin_%')
             ->pluck('value', 'key');
@@ -54,8 +53,11 @@ class ShippingProviderController extends BaseController
             }
         }
         $provider->update([
-            'information' => $config
+            'is_active' => $request->active,
+            'information' => $config,
         ]);
+        
+        Cache::forget('provider:' . $provider->code);
         return $this
             ->httpResponse()
             ->setPreviousUrl(route('logistics.providers.index'))

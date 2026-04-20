@@ -14,6 +14,7 @@ use Botble\Logistics\Services\Factories\ShippingFactory;
 use Botble\Logistics\DTO\ShippingShowOrderDTO;
 use Botble\Logistics\Services\Mappers\ProvinceMapper;
 use Botble\Logistics\Services\Mappers\DistrictMapper;
+use Botble\Logistics\Exceptions\ShippingException;
 
 class OrderShippingUsecase 
 {
@@ -32,15 +33,14 @@ class OrderShippingUsecase
     public function informationFrom($id) : infAddressDTO
     {
         $order = $this->OrderInterface->find($id);
-
         if($order->store_id !== null ){
             $store = $this->StoreInterface->findByCustomerId($order->store_id);
         }else{
             $store = DB::table('settings')
-                ->where('key', 'like', 'logistics_admin_%')
+                ->where('key', 'like', 'ecommerce_store_%')
                 ->pluck('value', 'key')
                 ->mapWithKeys(function ($value, $key) {
-                    $newKey = str_replace('logistics_admin_', '', $key);
+                    $newKey = str_replace('ecommerce_store_', '', $key);
                     return [$newKey => $value];
                 });
             $store = (object) $store->toArray();
@@ -49,8 +49,8 @@ class OrderShippingUsecase
             name : $store->name,
             phone : $store->phone,
             address : $store->address,
-            state_id : $store->state_id,
-            city_id : $store->city_id,
+            state_id : $store->state,
+            city_id : $store->city,
             // ward_id : $store->ward_id,
         );
     }
@@ -61,8 +61,8 @@ class OrderShippingUsecase
             name: $orderAddress->name,
             phone: $orderAddress->phone,
             address: $orderAddress->address,
-            state_id: $orderAddress->state_id,
-            city_id: $orderAddress->city_id,
+            state_id: $orderAddress->state,
+            city_id: $orderAddress->city,
             // ward_id: $orderAddress->ward_id,
         );
     }
@@ -93,6 +93,12 @@ class OrderShippingUsecase
     public function informationOrderShipping($id): ShippingShowOrderDTO
     {
         $order_shipping = $this->shippingOrderInterface->findByOrderId($id);
+        if(!$order_shipping){
+            throw new ShippingException(
+                message: 'không tồn tại đơn ship',
+                provider: ""
+            );
+        }
         $order_shipping_info = $this->shippingOrderInformationInterface->findOrderShippingId($order_shipping->id);
         $list = $this->products($id);
 
@@ -109,10 +115,14 @@ class OrderShippingUsecase
 
 
         $provider =  $this->ShippingProviderInterface->findCode($order_shipping->provider);
-        
         return new ShippingShowOrderDTO(
             provider: $provider->name,
+            provider_code: $order_shipping->provider,
             order_id: $order_shipping->order_id,
+            total_fee: $order_shipping->total_fee,
+            status: $order_shipping->status->value,
+            status_name: $order_shipping->status_name,
+            localion_currenty: $order_shipping->localion_currenty,
 
             sender_name: $order_shipping_info->from_name,
             sender_address: $order_shipping_info->from_address,
@@ -137,5 +147,11 @@ class OrderShippingUsecase
             code: $order_shipping->code,
             list_items: $list,
         );
+    }
+
+    public function shippingUnit($id)
+    {
+        $order = $this->OrderInterface->find($id);
+        return $order->shipping_option;
     }
 }

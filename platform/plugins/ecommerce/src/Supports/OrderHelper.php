@@ -756,7 +756,6 @@ class OrderHelper
         if (session()->has($sessionKey)) {
             $data = session($sessionKey);
         }
-
         return $this->cleanData($data);
     }
 

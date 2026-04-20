@@ -1,0 +1,11 @@
+{
+    "id": "botble/inventory",
+    "name": "Inventory",
+    "namespace": "Botble\\Inventory\\",
+    "provider": "Botble\\Inventory\\Providers\\InventoryServiceProvider",
+    "author": "",
+    "url": "",
+    "version": "1.0.0",
+    "description": "",
+    "minimum_core_version": "7.6.3"
+}

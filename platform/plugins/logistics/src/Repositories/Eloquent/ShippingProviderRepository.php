@@ -10,4 +10,8 @@ class ShippingProviderRepository extends RepositoriesAbstract implements Shippin
     public function findCode(string $code){
         return $this->model->where('code', $code)->first();
     }
+    public function findByIsActive($action)
+    {
+        return $this->model->where('is_active', $action)->get();
+    }
 }

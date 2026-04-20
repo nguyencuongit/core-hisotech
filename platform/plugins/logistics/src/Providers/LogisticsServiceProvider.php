@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Botble\Base\Facades\Assets;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Ecommerce\Enums\ShippingMethodEnum;
+
+
 // interface
 use Botble\Logistics\Repositories\Interfaces\OrderAddressInterface;
 use Botble\Logistics\Repositories\Interfaces\OrderInterface;
@@ -21,6 +25,7 @@ use Botble\Logistics\Repositories\Interfaces\ShippingDistrictMappingInterface;
 use Botble\Logistics\Repositories\Interfaces\ShippingProvinceMappingInterface;
 use Botble\Logistics\Repositories\Interfaces\ShippingOrderInterface;
 use Botble\Logistics\Repositories\Interfaces\ShippingOrderInformationInterface;
+use Botble\Logistics\Repositories\Interfaces\OrderShippingInterface;
 
 
 // repository
@@ -32,6 +37,7 @@ use Botble\Logistics\Repositories\Eloquent\ShippingDistrictMappingRepository;
 use Botble\Logistics\Repositories\Eloquent\ShippingProvinceMappingRepository;
 use Botble\Logistics\Repositories\Eloquent\ShippingOrderRepository;
 use Botble\Logistics\Repositories\Eloquent\ShippingOrderInformationRepository;
+use Botble\Logistics\Repositories\Eloquent\OrderShippingRepository;
 
 //model
 use Botble\Ecommerce\Models\Order;
@@ -42,7 +48,10 @@ use Botble\Logistics\Models\shippingDistrictMapping;
 use Botble\Logistics\Models\shippingProvinceMapping;
 use Botble\Logistics\Models\shippingOrder;
 use Botble\Logistics\Models\shippingOrderInformation;
+use Botble\Logistics\Models\Shipment;
 
+//provider
+use Botble\Logistics\Providers\EventServiceProvider;
 
 
 class LogisticsServiceProvider extends ServiceProvider
@@ -75,10 +84,15 @@ class LogisticsServiceProvider extends ServiceProvider
         $this->app->bind(ShippingOrderInformationInterface::class, function () {
             return new ShippingOrderInformationRepository(new shippingOrderInformation());
         });
+        $this->app->bind(OrderShippingInterface::class, function () {
+            return new OrderShippingRepository(new Shipment());
+        });
+
     }
 
     public function boot(): void    
     {
+
         $this
             ->setNamespace('plugins/logistics')
             ->loadHelpers()
@@ -105,6 +119,15 @@ class LogisticsServiceProvider extends ServiceProvider
                     'permissions' => ['logistics.index'],
                 ]);
                 DashboardMenu::registerItem([
+                    'id' => 'cms-plugins-logistics-dashboard',
+                    'priority' => 6,
+                    'parent_id' => 'cms-plugins-logistics',
+                    'name' => 'plugins/logistics::logistics.dashboard',
+                    'icon' => 'ti ti-box',
+                    'url' => route('logistics.report.index'),
+                    'permissions' => ['logistics.index'],
+                ]);
+                DashboardMenu::registerItem([
                     'id' => 'cms-plugins-logistics-providers',
                     'priority' => 6,
                     'parent_id' => 'cms-plugins-logistics',
@@ -117,20 +140,12 @@ class LogisticsServiceProvider extends ServiceProvider
                     'id' => 'cms-plugins-logistics-create-order',
                     'priority' => 7,
                     'parent_id' => 'cms-plugins-logistics',
-                    'name' => 'plugins/logistics::logistics.create.order',
+                    'name' => 'plugins/logistics::logistics.order',
                     'icon' => 'ti ti-box',
                     'url' => route('logistics.shipping.order.index'),
                     'permissions' => ['logistics.shipping.order'],
                 ]);
-                DashboardMenu::registerItem([
-                    'id' => 'cms-plugins-logistics-order',
-                    'priority' => 8,
-                    'parent_id' => 'cms-plugins-logistics',
-                    'name' => 'plugins/logistics::logistics.order',
-                    'icon' => 'ti ti-box',
-                    'url' => route('logistics.shipping.order.index'),
-                    'permissions' => ['logistics.index'],
-                ]);
+               
             });
         $this->app->booted(function () {
             if (Cache::get('logistics_seeded_states')) {
@@ -180,6 +195,8 @@ class LogisticsServiceProvider extends ServiceProvider
         });
 
 
+        $this->app->register(EventServiceProvider::class);
+
         // chạy js location.js ở global
         $this->publishes([
             __DIR__ . '/../../public' => public_path('vendor/core/plugins/logistics'),
@@ -190,8 +207,38 @@ class LogisticsServiceProvider extends ServiceProvider
         Assets::addScriptsDirectly([
             'vendor/core/plugins/logistics/js/shipping-fee.js',
         ]);
-        
-    }
+       
 
-    
+        config([
+            'logging.channels.logistics_webhook' => [
+                'driver' => 'daily',
+                'path' => storage_path('logs/logistics-webhook.log'),
+                'level' => 'debug',
+                'days' => 14,
+            ],
+        ]); 
+
+        //
+        add_filter('handle_shipping_fee',[$this, 'handleShippingFee'],12,2);
+        add_filter(BASE_FILTER_ENUM_ARRAY, function ($values, $class) {
+            if ($class == ShippingMethodEnum::class) {
+                $values['LOGISTICS'] = 'logistics';
+            }
+
+            return $values;
+        }, 2, 2);
+
+        add_filter(BASE_FILTER_ENUM_LABEL, function ($value, $class) {
+            if ($class == ShippingMethodEnum::class && $value == 'logistics') {
+                return 'logistics';
+            }
+
+            return $value;
+        }, 2, 2);
+    }
+    public function handleShippingFee($result, array $data): array
+    {
+        $useCase = app(\Botble\Logistics\Usecase\ShippingFeeUsecase::class);
+        return $useCase->calculateCheckout($data);
+    }
 }

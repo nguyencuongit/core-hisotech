@@ -24,6 +24,7 @@ use Botble\Logistics\DTO\ShippingCreateDTO;
 
 use Botble\Logistics\Usecase\OrderShippingUsecase;
 use Botble\Logistics\Usecase\CreateShippingUsecase;
+use Botble\Logistics\Usecase\CancelShippingOrderUsecase;
 
 class CreateOrderShippingController extends BaseController
 {
@@ -45,14 +46,14 @@ class CreateOrderShippingController extends BaseController
     {
         $this->pageTitle(trans('plugins/logistics::logistics.create'));
         $key = $orderShipping->keys()[0];
-
         $inf_from = $OrderShippingUsecase->informationFrom($key);
         $inf_to = $OrderShippingUsecase->informationTo($key);
         $products = $OrderShippingUsecase->products($key);
+        $shippingUnit = $OrderShippingUsecase->shippingUnit($key);
         $shippingProviders = $OrderShippingUsecase->shippingProvider();
         $states = State::all();
         $type = "create-shipping";
-        return view("plugins/logistics::admin.shipping.order.form",compact('inf_from', 'inf_to', 'states', 'shippingProviders', 'products','key' ));
+        return view("plugins/logistics::admin.shipping.order.form",compact('inf_from', 'inf_to', 'states', 'shippingProviders', 'products','key','shippingUnit' ));
     }
 
     public function store(CreateOrderShippingRequest $request,CreateShippingUsecase $createShippingUsecase)
@@ -77,13 +78,38 @@ class CreateOrderShippingController extends BaseController
 
     public function edit(OrderShippingUsecase $OrderShippingUsecase)
     {
-        $order_id = request()->route('shipping_create');
-        $information = $OrderShippingUsecase->informationOrderShipping($order_id);
-        // dd($information);
-        
-        $this->pageTitle(trans('core/base::forms.edit_item'));
+        try {
+           $order_id = request()->route('shipping_create');
+            $information = $OrderShippingUsecase->informationOrderShipping($order_id);
 
-        return view("plugins/logistics::admin.shipping.order.form_show", compact('information'));
+
+            $status = $information->status;
+            $color = match($status) {
+                'delivered' => 'text-success',
+                'shipping'  => 'text-primary',
+                'cancel'    => 'text-danger',
+                'failed'    => 'text-danger',
+                default     => 'text-warning',
+            };
+            $icon = match($status) {
+                'delivered' => 'fa-check-circle',
+                'shipping'  => 'fa-truck',
+                'cancel'    => 'fa-times-circle',
+                'failed'    => 'fa-exclamation-circle',
+                default     => 'fa-clock',
+            };
+
+
+            $this->pageTitle(trans('core/base::forms.edit_item'));
+            return view("plugins/logistics::admin.shipping.order.form_show", compact('information','order_id','icon','color'));
+        } catch (ShippingException $e) {
+             return $this
+            ->httpResponse()
+            ->setPreviousUrl(url()->previous())
+            ->setError()
+            ->setMessage($e->getMessage());
+        }
+        
 
     }
 
@@ -100,9 +126,24 @@ class CreateOrderShippingController extends BaseController
     //         ->setMessage(trans('core/base::notices.update_success_message'));
     // }
 
-    public function destroy(shippingOrder $shippingOrder)
+    public function destroy(CancelShippingOrderUsecase $cancelShippingOrderUsecase, Request $request)
     {
-        dd(1);
-        return DeleteResourceAction::make($shippingOrder);
+        try {
+            $order_id = request()->route('shipping_create');
+            $cancel = $cancelShippingOrderUsecase->cancelOrder($request->provider_code, $request->code, $order_id);
+
+            return $this
+                    ->httpResponse()
+                    ->setPreviousUrl(route('logistics.index'))
+                    ->setNextUrl(route('logistics.shipping.order.index', ['status' => 'CANCELLED']))
+                ->setMessage(trans($cancel->message));
+        } catch (ShippingException $e) {
+             return $this
+            ->httpResponse()
+            ->setPreviousUrl(url()->previous())
+            ->setError()
+            ->setMessage($e->getMessage());
+        }
+        
     }
 }

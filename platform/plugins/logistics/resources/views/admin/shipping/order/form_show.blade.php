@@ -72,7 +72,6 @@
             </h4>
             
             <div class="row g-3">
-
                 <!-- NAME + PHONE -->
                 <div class="col-12 border-bottom pb-2 mb-2">
                     <div class="row">
@@ -111,7 +110,6 @@
 
             </div>
             </div>
-
                     <!-- SIZE -->
                     <div class="card p-3 mb-4">
             <h4 class="mb-3 fw-bold">
@@ -172,40 +170,59 @@
 
         <!-- RIGHT -->
         <div class="col-lg-4">
-        <form action="{{route('logistics.shipping.order.destroy')}}" method="POST">
-          <div class="card p-3 mb-3">
-            <button class="btn btn-danger w-100 fw-bold">
-                <i class="fas fa-ban me-2"></i>
-                Huỷ đơn
-            </button>
-          </div>
-          <input type="text" name="code" value="{{$items['code']}}" >
-        </form>
-        <div class="card p-3 mb-3">
-            <label class="text-muted">CODE</label>
-
-            <div class="fw-bold d-flex align-items-center gap-2">
-                <span id="code-value" data-code="{{ $information->code }}">
-                    *******
-                </span>
-
-                <i class="fas fa-eye cursor-pointer" id="toggle-code"></i>
+            <form action="{{ route('logistics.shipping.order.destroy', $order_id) }}" class="{{$information->status === 'delivered' ? 'd-none' : ''}}" method="POST">
+                @csrf
+                @method('DELETE')
+            <div class="card p-3 mb-3">
+                <button class="btn btn-danger w-100 fw-bold">
+                    <i class="fas fa-ban me-2"></i>
+                    Huỷ đơn
+                </button>
             </div>
-        </div>
+            <input type="hidden" name="code" value="{{$information->code}}" >
+            <input type="hidden" name="provider_code" value="{{$information->provider_code}}" >
+            </form>
+            <div class="card p-3 mb-3">
+                <label class="text-muted">CODE</label>
 
-          <div class="card p-3 mb-3">
-            <label class="text-muted">
-                
-                <i class="fas fa-money-bill-wave me-2"></i>COD amount</label>
-            <div class="fw-bold">500,000 VND</div>
-          </div>
+                <div class="fw-bold d-flex align-items-center gap-2">
+                    <span id="code-value" data-code="{{ $information->code }}">
+                        *******
+                    </span>
 
-          <div class="card p-3 mb-3">
-            <label class="text-muted"><i class="fas fa-hand-holding-usd me-2"></i>  Phí ship</label>
-            <div class="fw-bold text-primary fs-4">
-                35,000 VND
+                    <i class="fas fa-eye cursor-pointer" id="toggle-code"></i>
+                </div>
             </div>
-          </div>
+
+            <div class="card p-3 mb-3">
+                <label class="text-muted">
+                    
+                    <i class="fas fa-money-bill-wave me-2"></i>COD amount</label>
+                <div class="fw-bold">{{ number_format($information->cod_amount, 0, ',', '.') }} đ</div>
+            </div>
+
+            <div class="card p-3 mb-3">
+                <label class="text-muted"><i class="fas fa-hand-holding-usd me-2"></i>  Phí ship</label>
+                <div class="fw-bold text-primary fs-4">
+                   {{ number_format($information->total_fee, 0, ',', '.') }} đ
+                </div>
+            </div>
+
+            <div class="card p-3 mb-3 shadow-sm">
+                <label class="text-muted mb-2">
+                    <i class="fas fa-shipping-fast me-2"></i> Trạng thái đơn hàng
+                </label>
+
+                <div class="fw-bold fs-5 {{ $color }}">
+                    <i class="fas {{ $icon }} me-1"></i>
+                    {{ $information->status_name }}
+                </div>
+
+                <div class="text-muted mt-1">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    {{ $information->localion_currenty }}
+                </div>
+            </div>
 
         </div>
     </div>

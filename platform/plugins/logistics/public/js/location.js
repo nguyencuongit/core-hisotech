@@ -85,35 +85,39 @@ document.addEventListener('change', async function (e) {
 // 🔥 AUTO LOAD KHI EDIT (cái bạn đang thiếu)
 document.addEventListener('DOMContentLoaded', async function () {
 
-    let province = document.querySelector('.js-province');
-    if (!province) return;
+    let provinces = document.querySelectorAll('.js-province');
 
-    let provinceId = province.dataset.selected;
-    if (!provinceId) return;
+    for (let province of provinces) {
 
-    let districtSelect = document.querySelector(province.dataset.target);
-    if (!districtSelect) return;
+        let provinceId = province.dataset.selected;
+        if (!provinceId) continue;
 
-    // 👉 load district
-    let districts = await LocationHelper.getDistricts(provinceId);
-    LocationHelper.renderOptions(districtSelect, districts);
+        let districtSelect = document.querySelector(province.dataset.target);
+        if (!districtSelect) continue;
 
-    let selectedDistrict = districtSelect.dataset.district;
+        // 👉 load districts
+        let districts = await LocationHelper.getDistricts(provinceId);
+        LocationHelper.renderOptions(districtSelect, districts);
 
-    if (selectedDistrict) {
-        districtSelect.value = selectedDistrict;
+        let selectedDistrict = districtSelect.dataset.district;
 
-        // 👉 load ward tiếp
-        let wardSelect = document.querySelector(districtSelect.dataset.target);
+        if (selectedDistrict) {
+            districtSelect.value = selectedDistrict;
 
-        if (wardSelect) {
-            let wards = await LocationHelper.getWards(selectedDistrict);
-            LocationHelper.renderOptions(wardSelect, wards);
+            // 👉 load wards
+            let wardSelect = document.querySelector(districtSelect.dataset.target);
 
-            let selectedWard = wardSelect.dataset.ward;
+            if (wardSelect) {
+                let provider = document.querySelector('.js-provider')?.value || '';
 
-            if (selectedWard) {
-                wardSelect.value = selectedWard;
+                let wards = await LocationHelper.getWards(selectedDistrict, provider);
+                LocationHelper.renderOptions(wardSelect, wards);
+
+                let selectedWard = wardSelect.dataset.ward;
+
+                if (selectedWard) {
+                    wardSelect.value = selectedWard;
+                }
             }
         }
     }

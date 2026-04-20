@@ -15,4 +15,5 @@ class ShippingFeeController extends BaseController
             'fee' => $fee
         ]);
     }
+
 }

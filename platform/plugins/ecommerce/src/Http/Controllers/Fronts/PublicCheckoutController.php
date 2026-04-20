@@ -371,7 +371,6 @@ class PublicCheckoutController extends BaseController
         Cart::instance('cart')->refresh();
 
         $products = Cart::instance('cart')->products();
-
         $shippingMethod = $request->input('shipping_method', Arr::get($sessionData, 'shipping_method'));
         $shippingOption = $request->input('shipping_option', Arr::get($sessionData, 'shipping_option'));
 
@@ -505,7 +504,7 @@ class PublicCheckoutController extends BaseController
         }
 
         OrderHelper::setOrderSessionData($token, $sessionData);
-
+        
         return $sessionData;
     }
 

@@ -10,8 +10,8 @@ class ShippingFactory
     public static function make(string $driver): ShippingServiceInterface
     {
         return match ($driver) {
-            'ghn' => new GHNDriver(),
-            'viettelpost' => new ViettelPostDriver(),
+            'ghn' => app(GHNDriver::class),
+            'viettelpost' => app(ViettelPostDriver::class),
 
             default => throw new \InvalidArgumentException("Driver [$driver] not supported"),
         };

@@ -13,6 +13,7 @@ class ShippingSettingController extends SettingController
 {
     public function edit()
     {
+        
         $this->pageTitle(trans('plugins/ecommerce::setting.shipping.name'));
 
         Assets::addStylesDirectly(['vendor/core/plugins/ecommerce/css/ecommerce.css'])
@@ -20,7 +21,7 @@ class ShippingSettingController extends SettingController
             ->addScripts(['input-mask']);
 
         $form = ShippingSettingForm::create();
-
+        // dd($form);
         $shipping = Shipping::query()
             ->with([
                 'rules' => function ($query): void {
@@ -30,7 +31,7 @@ class ShippingSettingController extends SettingController
             ->get();
 
         Cache::make(HandleShippingFeeService::class)->flush();
-
+        
         return view('plugins/ecommerce::settings.shipping', compact('shipping', 'form'));
     }
 

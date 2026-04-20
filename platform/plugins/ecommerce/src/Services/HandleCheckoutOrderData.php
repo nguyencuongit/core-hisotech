@@ -27,15 +27,14 @@ class HandleCheckoutOrderData
 
     public function execute(Request $request, Collection $products, string $token, array &$sessionCheckoutData): CheckoutOrderData
     {
-        $paymentMethod = null;
 
+        $paymentMethod = null;
         if (is_plugin_active('payment')) {
             $paymentMethod = $request->input(
                 'payment_method',
                 session('selected_payment_method') ?: PaymentHelper::defaultPaymentMethod()
             );
         }
-
         if ($paymentMethod) {
             session()->put('selected_payment_method', $paymentMethod);
         }
@@ -61,6 +60,7 @@ class HandleCheckoutOrderData
 
                     if ($order && isset($storeData['shipping_amount'])) {
                         $shippingAmount = $storeData['shipping_amount'];
+                        
                         $newAmount = max($order->sub_total - $order->discount_amount + $order->tax_amount + $shippingAmount + ($order->payment_fee ?? 0), 0);
 
                         if ($order->shipping_amount != $shippingAmount || $order->amount != $newAmount) {
@@ -73,6 +73,7 @@ class HandleCheckoutOrderData
                     }
                 }
             }
+
         } else {
             $promotionDiscountAmount = $this->applyPromotionsService->execute($token);
 

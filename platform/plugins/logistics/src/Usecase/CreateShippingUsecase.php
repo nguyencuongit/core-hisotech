@@ -8,7 +8,12 @@ use Botble\Logistics\Services\Mappers\DistrictMapper;
 use Botble\Logistics\Services\Mappers\ShippingOrderInformationMapper;
 use Botble\Logistics\Repositories\Interfaces\ShippingOrderInterface;
 use Botble\Logistics\Repositories\Interfaces\ShippingOrderInformationInterface;
-
+use Botble\Logistics\Repositories\Interfaces\OrderShippingInterface;
+use Botble\Logistics\Exceptions\ShippingException;
+use Botble\Logistics\Enums\ShippingStatus;
+use Botble\Logistics\Events\ShippingOrderStatusUpdated;
+use Botble\Logistics\Enums\ShipmentStatus;
+use Illuminate\Support\Facades\DB;
 
 class CreateShippingUsecase 
 {
@@ -17,18 +22,23 @@ class CreateShippingUsecase
         private DistrictMapper $districtMapper,
         private ShippingOrderInterface $shippingOrderInterface,
         private ShippingOrderInformationInterface $shippingOrderInformationInterface,
+        private OrderShippingInterface $orderShippingInterface,
     ){}
     public function createShipping(ShippingCreateDTO $data)
     {
-        $this->mapAddress($data);
-        
-        $response = $this->callProviderAPI($data);
+            $this->checkCreateOrderShipping($data->order_id, $data->provider);
 
-        $order = $this->saveOrder($data, $response);
+            $this->mapAddress($data);
 
-        $this->saveOrderInformation($data, $order);
+            $response = $this->callProviderAPI($data);
 
-        return $order;
+            $order = $this->saveOrder($data, $response);
+
+            $this->saveOrderInformation($data, $order);
+
+            $this->evenUpdateShipment($data->order_id);
+
+            return $order;
     }
 
     private function mapAddress(ShippingCreateDTO $data): void
@@ -66,7 +76,7 @@ class CreateShippingUsecase
         return $this->shippingOrderInterface->create([
             "order_id" => $data->order_id,
             "provider" => $data->provider,
-            "status" => "created",
+            "status" => ShippingStatus::CREATED,
             "code" => $response->order_code,
             "error" => null,
             "total_fee" => $response->total_fee,
@@ -81,4 +91,23 @@ class CreateShippingUsecase
         );
     }
 
+    private function checkCreateOrderShipping($order_id, $provider){
+        $existsOrderId = $this->shippingOrderInterface->existsOrderId($order_id);
+        if($existsOrderId){
+            throw new ShippingException(
+                message: 'Không thể tạo đơn'.$provider.', Đơn ship đã tồn tại',
+                provider: $provider
+            );
+        }
+        return true;
+    }
+
+
+    private function evenUpdateShipment($order_id){
+        $shipment = $this->orderShippingInterface->findOrderId($order_id);
+        event(new ShippingOrderStatusUpdated(
+                    $shipment,
+                    ShipmentStatus::READY_TO_SHIP
+                ));
+    }
 }

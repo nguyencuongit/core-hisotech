@@ -22,8 +22,9 @@ class AddressShippingController extends BaseController
             if (empty($data)) {
                 throw new \Exception('Không lấy được danh sách tỉnh');
             }
+
             foreach ($data as $items) {
-                $slug = Str::slug($items['ProvinceName']);
+                $slug = Str::slug($items->name);
                 $id = State::where('slug', $slug)->value('id');
                 if (!$id) {
                     continue; 
@@ -34,7 +35,7 @@ class AddressShippingController extends BaseController
                         'provider' => $code,
                     ],
                     [
-                        'province_id' => $items['ProvinceID'],
+                        'province_id' => $items->id,
                     ]
                 );
             }
@@ -62,18 +63,18 @@ class AddressShippingController extends BaseController
             foreach($provinces as $province){
                 $data = $shipping->getDistrict($province->province_id);
                 foreach($data as $value){
-                    $slug = Str::slug($value['DistrictName']);
+                    $slug = Str::slug($value->name);
                     $cities[] = [
                         'slug' => $slug,
                         'state_id' => $province->state_id,
-                        'name' => $value['DistrictName'],
+                        'name' => $value->name,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
                     $mappings[] = [
                         'slug' => $slug,
                         'provider' => $code,
-                        'district_id' => $value['DistrictID'],
+                        'district_id' => $value->id,
                     ];
                 }
             }

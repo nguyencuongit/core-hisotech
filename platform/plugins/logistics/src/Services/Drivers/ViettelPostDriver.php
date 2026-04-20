@@ -6,21 +6,25 @@ use Botble\Logistics\DTO\ShippingData;
 use Botble\Logistics\DTO\ShippingCreateDTO;
 use Botble\Logistics\DTO\CancelOrderShippingDTO;
 use Botble\Logistics\DTO\ShippingCreateResponseDTO;
+use Botble\Logistics\DTO\WebhookDataDTO;
 use Botble\Logistics\Exceptions\ShippingException;
 use Illuminate\Support\Facades\Http;
-
+use Botble\Logistics\Services\Mappers\ProvinceMapper;
+use Botble\Logistics\Services\Mappers\DistrictMapper;
+use Illuminate\Support\Facades\Cache;
+use Botble\Logistics\Repositories\Interfaces\ShippingProviderInterface;
+use Botble\Logistics\Enums\ShippingStatus;
 
 class ViettelPostDriver implements ShippingServiceInterface
 {
-    protected string $token;
 
-    public function __construct()
-    {
-        $this->token = $this->getToken();
-    }
+    public function __construct(
+        private ShippingProviderInterface $shippingProviderInterface,
+    ){}
 
     public function calculateFee(ShippingData $data): float
     {
+        $config = $this->getProviderConfig();
         $data_raw =[
             "PRODUCT_WEIGHT"=>(int) $data->weight,
             "ORDER_SERVICE_ADD"=>"",
@@ -34,7 +38,7 @@ class ViettelPostDriver implements ShippingServiceInterface
            
         ];
          $response = Http::post(
-            'https://partner.viettelpost.vn/v2/order/getPrice',
+            $config['url_fee'],
             $data_raw
         );
         if ($response->failed()) {
@@ -46,6 +50,7 @@ class ViettelPostDriver implements ShippingServiceInterface
 
     public function ShippingCreate(ShippingCreateDTO $data): ShippingCreateResponseDTO
     {
+        $config = $this->getProviderConfig();
         $products = [];
         foreach ($data->list_items as $items){
             $products[] = [
@@ -103,8 +108,8 @@ class ViettelPostDriver implements ShippingServiceInterface
 
             "LIST_ITEM" => $products,
         ];
-        $response = Http::withHeaders(['TOKEN' => $this->token,])
-        ->post('https://partner.viettelpost.vn/v2/order/createOrder',$data_raw);
+        $response = Http::withHeaders(['TOKEN' => $this->getToken(),])
+        ->post($config['url_create'],$data_raw);
         $data = $response->json();
         
         if (!isset($data['data'])) {
@@ -122,24 +127,23 @@ class ViettelPostDriver implements ShippingServiceInterface
         );
     }
 
-    public function cancelOrderShipping($code): CancelOrderShippingDTO
+    public function cancelOrderShipping(string $code): CancelOrderShippingDTO
     {
+        $config = $this->getProviderConfig();
         $data_raw = [
             "TYPE" => 4,
             "ORDER_NUMBER" => $code,
             "NOTE" => "Khách hàng hủy đơn"
         ];
-
         $response = Http::withHeaders([
-            'TOKEN' => $this->token,
+            'TOKEN' => $this->getToken(),
             'accept' => '*/*',
             'Content-Type' => 'application/json',
             'Cookie' => 'SERVERID=2',
         ])->post(
-            'https://partner.viettelpost.vn/v2/order/UpdateOrder',
+            $config['url_cancel'],
             $data_raw
         );
-
         if ($response->json()['error']) {
             throw new ShippingException(
                 message: 'Không thể huỷ đơn ViettelPost',
@@ -153,56 +157,95 @@ class ViettelPostDriver implements ShippingServiceInterface
         );
     }
 
-    public function getToken(){
-         $response = Http::post(
-            'https://partner.viettelpost.vn/v2/user/Login',
-            [
-                'USERNAME' => '0348952451',
-                'PASSWORD' => 'Mc12101997@',
-            ]
-        );
-        if ($response->failed()) {
-            throw new \Exception('GHN API error: ' . $response->json());
-        }
-        $token = $response->json()['data']['token'];
-        return $token;
+    public function getToken()
+    {
+        return Cache::remember('viettelpost:token', 300, function () {
+            $config = $this->getProviderConfig();
+            $response = Http::post(
+                $config['url_token'],
+                [
+                    'USERNAME' => '0348952451',
+                    'PASSWORD' => 'Mc12101997@',
+                ]
+            );
+            if ($response->failed()) {
+                throw new \Exception('GHN API error: ' . $response->json());
+            }
+            $token = $response->json()['data']['token'];
+            return $token;
+        });
     }
 
-    public function getProvince(){
+    public function getProvince()
+    {
+        $config = $this->getProviderConfig();
         $response = Http::withHeaders([
             'Cookie' => 'SERVERID=2; SERVERID=2',
-        ])->get('https://partnerdev.viettelpost.vn/v3/categories/listProvinceNew');
+        ])->get($config['url_province']);
         if ($response->failed()) {
             throw new \Exception('GHN API error: ' . $response->json()['message']);
         }
         $res = $response->json()['data'];
-        $data=[];
-        foreach($res as $items){
-            $data[] = [
-                "ProvinceID" => $items['PROVINCE_ID'],
-                "ProvinceName" => $items['PROVINCE_NAME'],
-            ];
-        }
+        $data=collect($res)
+            ->map(fn ($item) => ProvinceMapper::mapViettelPost($item))
+            ->toArray();
         return $data;
     }
 
-    public function getDistrict($id){
-       $response = Http::withHeaders([
+    public function getDistrict($id_province)
+    {
+        $config = $this->getProviderConfig();
+        $response = Http::withHeaders([
         'Cookie' => 'SERVERID=2; SERVERID=2',
         ])->get(
-            'https://partnerdev.viettelpost.vn/v3/categories/listWardsNew',
+            $config['url_district'],
             [
-                'provinceId' =>$id
+                'provinceId' =>$id_province
             ]
         );
         $res = $response->json()['data'];
         $data = [];
-        foreach($res as $items){
-            $data[] = [
-                "DistrictID" => $items['WARDS_ID'],
-                "DistrictName" => $items['WARDS_NAME'],
-            ];
-        }
+        $data=collect($res)
+            ->map(fn ($item) => DistrictMapper::mapViettelPost($item))
+            ->toArray();
         return $data;
+    }
+
+    private function getProviderConfig(): array
+    {
+        return Cache::remember('provider:viettelpost', now()->addHours(24), function () {
+            $provider = $this->shippingProviderInterface
+                ->findCode('viettelpost');
+            return $provider->information;
+        });
+    }
+
+    public function webhook(array $payload): WebhookDataDTO
+    {
+        $data= $payload['DATA'];
+
+        $status = match ( (int) $data['ORDER_STATUS']) {
+            103, 104 => ShippingStatus::CREATED,
+
+            200 => ShippingStatus::PICKED,
+
+            300, 400, 500, 508, 550, 507 => ShippingStatus::SHIPPING,
+
+            501 => ShippingStatus::DELIVERED,
+
+            101, 107, 201, 503 => ShippingStatus::CANCEL,
+
+            506, 515, 504 => ShippingStatus::FAILED,
+        };
+
+        if (!$status) {
+            return null;
+        }
+        return new WebhookDataDTO(
+            orderCode: $data['ORDER_NUMBER'],
+            status: $status->value,
+            statusName: $data['STATUS_NAME'],
+            localionCurrenty: $data['LOCALION_CURRENTLY'],
+        );
     }
 }

@@ -16,7 +16,7 @@
             <select class="form-select js-provider" name="provider">
                     <option value="">-- Chọn đơn vị vận chuyển --</option>
                     @foreach ($shippingProviders as $value)
-                        <option value="{{ $value['code'] }}">
+                        <option value="{{ $value['code'] }}"  {{ $value['code'] == $shippingUnit ? 'selected' : '' }}>
                             {{ $value['name'] }}
                         </option>
                     @endforeach
@@ -25,7 +25,7 @@
             
           </div>
 
-          <div id="shipping-info" style="display: none;">
+          <div id="shipping-info" style="{{ $shippingUnit ? 'display:block;' : 'display:none;' }}">
             <div class="card p-3 mb-4">
               <h3 class="mb-3">Thông tin người gửi</h3>
               
@@ -89,10 +89,10 @@
 
                 <div class="col-md-4">
                   <label class="form-label">Tỉnh/Thành</label>
-                  <select class="form-select js-province" data-target="#district1" name="to_province" value="{{$inf_to->state_id}}">
+                  <select class="form-select js-province" data-target="#district1" name="to_province" data-selected="{{ $inf_to->state_id }}" value="{{$inf_to->state_id}}">
                       <option value="">-- Chọn tỉnh/thành --</option>
                       @foreach ($states as $state)
-                          <option value="{{ $state->id }}">
+                          <option value="{{ $state->id }}" {{ $state->id == $inf_to->state_id ? 'selected' : '' }}>
                               {{ $state->name }}
                           </option>
                       @endforeach
@@ -101,7 +101,7 @@
 
               <div class="col-md-4">
                   <label class="form-label">Phường/Xã</label>
-                  <select class="form-select js-district" id="district1" name='to_district' data-target="#ward1" value="{{$inf_to->city_id}}">
+                  <select class="form-select js-district" id="district1" name='to_district' data-target="#ward1" value="{{$inf_to->city_id}}" data-district="{{$inf_to->city_id}}">
                     <option value="">-- Chọn Phường/Xã --</option>
                   </select>
               </div>
@@ -158,10 +158,10 @@
                               <tr>
                                   <td>{{ $index + 1 }}</td>
                                   <td class="d-flex align-items-center gap-2">
-                                      <img src="{{ asset($item['image']) }}" 
+                                      <!-- <img src="{{ asset($item['image']) }}" 
                                           alt="ảnh" 
                                           width="50" height="50"
-                                          style="object-fit: cover; border-radius: 6px;">
+                                          style="object-fit: cover; border-radius: 6px;"> -->
                                       <span>{{ $item['name'] }}</span>
                                       <input type="hidden" name="products[{{ $index }}][name]" value="{{ $item['name'] }}">
                                   </td>

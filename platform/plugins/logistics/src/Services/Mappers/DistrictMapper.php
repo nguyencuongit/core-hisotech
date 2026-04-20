@@ -1,6 +1,7 @@
 <?php
 namespace Botble\Logistics\Services\Mappers;
 use Botble\Logistics\Models\shippingDistrictMapping;
+use Botble\Logistics\DTO\DistrictDTO;
 
 class DistrictMapper
 {
@@ -22,5 +23,12 @@ class DistrictMapper
             'cities.name as name'
         ])
         ->first();
+    }
+    public static function mapViettelPost($data): DistrictDTO
+    {
+        return new DistrictDTO(
+            id: $data['WARDS_ID'],
+            name: $data['WARDS_NAME'],
+        );
     }
 }

@@ -5,7 +5,8 @@ use Botble\Logistics\Services\Contracts\ShippingServiceInterface;
 use Botble\Logistics\DTO\ShippingData;
 use Botble\Logistics\DTO\ShippingCreateDTO;
 use Illuminate\Support\Facades\Http;
-use Botble\Logistics\DTO\ShippingCreateResponse;
+use Botble\Logistics\DTO\ShippingCreateResponseDTO;
+use Botble\Logistics\DTO\CancelOrderShippingDTO;
 
 
 class GHNDriver implements ShippingServiceInterface
@@ -44,7 +45,7 @@ class GHNDriver implements ShippingServiceInterface
         $ree = $response->json();
         return $ree['data']['total'];
     }
-    public function ShippingCreate(ShippingCreateDTO $data): ShippingCreateResponse
+    public function ShippingCreate(ShippingCreateDTO $data): ShippingCreateResponseDTO
     {
         $data_raw = [
             "payment_type_id" => 2,
@@ -115,6 +116,11 @@ class GHNDriver implements ShippingServiceInterface
         ]; 
     }
 
+     public function cancelOrderShipping(string $code): CancelOrderShippingDTO
+     {
+        dd(ểwrewrew);
+     }
+
     public function getProvince(){
         $response = Http::withHeaders([
             'Token' => $this->token,
@@ -123,6 +129,8 @@ class GHNDriver implements ShippingServiceInterface
             throw new \Exception('GHN API error: ' . $response->json()['message']);
         }
         $res =  $response->json()['data'];
+        dd($res);
+
         $data=[];
         foreach($res as $items){
             $data[] = [
@@ -133,8 +141,9 @@ class GHNDriver implements ShippingServiceInterface
         return $data;
     }
 
-    public function getDistrict($id){
-        $provinceId = (int) $id;
+    public function getDistrict($id_province){
+        dd(2);
+        $provinceId = (int) $id_province;
         $response = Http::withHeaders([
             'Token' => $this->token,
         ])->post("https://online-gateway.ghn.vn/shiip/public-api/master-data/district",["province_id"=>$provinceId]);
@@ -150,19 +159,20 @@ class GHNDriver implements ShippingServiceInterface
         return $data;
     }
 
-    public function getWard($id){
-        $district_id = (int) $id;
-        $response = Http::withHeaders([
-            'Token' => $this->token,
-        ])->post("https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id",["district_id"=>$district_id]);
-        $res = $response->json()['data'];
-        $data = [];
-        foreach($res as $items){
-            $data[] = [
-                "WARDS_ID" => $items['WardCode'],
-                "WARDS_NAME" => $items['WardName'],
-            ];
-        }
-        return $data;
-    }
+    // public function getWard($id){
+    //     dd(3);
+    //     $district_id = (int) $id;
+    //     $response = Http::withHeaders([
+    //         'Token' => $this->token,
+    //     ])->post("https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id",["district_id"=>$district_id]);
+    //     $res = $response->json()['data'];
+    //     $data = [];
+    //     foreach($res as $items){
+    //         $data[] = [
+    //             "WARDS_ID" => $items['WardCode'],
+    //             "WARDS_NAME" => $items['WardName'],
+    //         ];
+    //     }
+    //     return $data;
+    // }
 }

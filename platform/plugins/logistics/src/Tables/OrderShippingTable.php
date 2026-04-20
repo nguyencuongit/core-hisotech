@@ -35,6 +35,13 @@ class OrderShippingTable extends TableAbstract
                     ->icon('ti ti-plus'),
             ],
 
+            'CANCELLED' => [
+                EditAction::make()
+                    ->route('logistics.shipping.order.create')
+                    ->label('Tạo lại đơn')
+                    ->icon('ti ti-plus'),
+            ],
+
             null => [
                 EditAction::make()
                     ->label('...')

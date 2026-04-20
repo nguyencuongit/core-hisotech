@@ -4,7 +4,15 @@ class ShippingShowOrderDTO
 {
     public function __construct(
         public string $provider,
+        public string $provider_code,
         public int $order_id,
+        public int $total_fee,
+        public string $status,
+        public string $status_name,
+        public string $localion_currenty,
+
+
+
         // from
         public string $sender_name,
         public string $sender_address,
