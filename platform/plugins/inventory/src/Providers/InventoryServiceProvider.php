@@ -37,7 +37,7 @@ class InventoryServiceProvider extends ServiceProvider
                     'name' => 'plugins/inventory::inventory.name',
                     'icon' => 'ti ti-building-warehouse',
                     // 'url' => route('inventory.index'),
-                    'permissions' => ['inventory.index'],
+                    'permissions' => ['inventory'],
                 ]);
             });
 

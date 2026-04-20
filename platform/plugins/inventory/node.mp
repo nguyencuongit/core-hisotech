@@ -31,9 +31,27 @@ inv_warehouse_staff
 inv_warehouse_staff_assignments (phân công nhân sự + phân quyền)
 inv_warehouse_positions (chức vụ trong kho)
 
-inv_suppliers (kho mua hàng)
+
+inv_ncc ( nhà cung cấp )
+    id, name_compaly, phone_compaly, gmail_compaly, type(cá nhân, tổ chức), note
+   
+inv_ncc_infomation 
+    id ncc_id  name_bank, number_bank , hunder_bank , cccd/ , MST(mã số thuế) , name_liên_hệ, phone, gmail, chức vụ, address, contry, state, district 
+
+inv_ncc_items
+    id ncc_id product_id
+
 inv_customers ( khách hàng )
-inv_product
+
+inv_suppliers (hoá đơn kho mua hàng) 
+    id, ncc_id, id_warehouse, user_id, code, status, document_date, total
+
+inv_suppliers_items
+    id suppliers_id, warehouses_product_id, price, qty
+
+inv_warehouses_product  
+    id,  prd_id , id_warehouse
+
 inv_warehouses
 inv_warehouse_locations
 inv_export
@@ -77,6 +95,7 @@ platform/plugins/inventory/src/
 ├── Repositories/
 ├── Supports/
 └── Domains/
+    ├── ncc/
     ├── Product/
     │   ├── Models/
     │   ├── Services/
@@ -111,3 +130,7 @@ platform/plugins/inventory/src/
     lúc gọi ra:
     $warehouseId = app(WarehouseContext::class)->getWarehouseId();
     xong trong Repositories tạo 1 function query($warehouseId) xong từ đó về sau khi thay vì dùng 
+
+    tạo phiếu xác nhận thì mới thay đổi dữ liệu
+
+    usecase request -> controller -> Usecase(sử lý logic) ->repository(sử lý DB) (khai báo trong provider)
