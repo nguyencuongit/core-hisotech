@@ -6,23 +6,48 @@ return [
         'flag' => 'inventory',
     ],
     [
-        'name' => 'Warehouse positions',
-        'flag' => 'warehouse-positions.index',
+        'name' => 'Suppliers',
+        'flag' => 'inventory.suppliers.index',
         'parent_flag' => 'inventory',
     ],
     [
         'name' => 'Create',
-        'flag' => 'warehouse-positions.create',
-        'parent_flag' => 'warehouse-positions.index',
+        'flag' => 'inventory.suppliers.create',
+        'parent_flag' => 'inventory.suppliers.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'inventory.suppliers.show',
+        'parent_flag' => 'inventory.suppliers.index',
     ],
     [
         'name' => 'Edit',
-        'flag' => 'warehouse-positions.edit',
-        'parent_flag' => 'warehouse-positions.index',
+        'flag' => 'inventory.suppliers.edit',
+        'parent_flag' => 'inventory.suppliers.index',
     ],
     [
         'name' => 'Delete',
-        'flag' => 'warehouse-positions.destroy',
-        'parent_flag' => 'warehouse-positions.index',
+        'flag' => 'inventory.suppliers.delete',
+        'parent_flag' => 'inventory.suppliers.index',
+    ],
+    [
+        'name' => 'Manage contacts',
+        'flag' => 'inventory.suppliers.manage_contacts',
+        'parent_flag' => 'inventory.suppliers.index',
+    ],
+    [
+        'name' => 'Manage addresses',
+        'flag' => 'inventory.suppliers.manage_addresses',
+        'parent_flag' => 'inventory.suppliers.index',
+    ],
+    [
+        'name' => 'Manage banks',
+        'flag' => 'inventory.suppliers.manage_banks',
+        'parent_flag' => 'inventory.suppliers.index',
+    ],
+    [
+        'name' => 'Manage products',
+        'flag' => 'inventory.suppliers.manage_products',
+        'parent_flag' => 'inventory.suppliers.index',
     ],
 ];
