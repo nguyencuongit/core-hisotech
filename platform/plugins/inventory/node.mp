@@ -53,7 +53,10 @@ inv_warehouses_product
     id,  prd_id , id_warehouse
 
 inv_warehouses
+    id,code,name,type, manager_id, address, province_id / ward_id, phone, email, is_active,description
+
 inv_warehouse_locations
+    id, name, code, type, warehouse_id, parent_id, level, path, is_active, description
 inv_export
 inv_export_items
 inv_import
@@ -104,6 +107,9 @@ platform/plugins/inventory/src/
     │   ├── Enums/
     │   ├── usecase/
     │   └── DTO/
+    │
+    ├── WarehouseStaff/ (xong)
+    │
     ├── Warehouse/
     │   
     ├── Import/

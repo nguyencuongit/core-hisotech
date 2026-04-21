@@ -98,4 +98,9 @@ return [
     'warehouse_positions' => [
         'name' => 'Warehouse positions',
     ],
+
+    'warehouse' => [
+        'name' => 'Warehouse',
+    ],
+
 ];

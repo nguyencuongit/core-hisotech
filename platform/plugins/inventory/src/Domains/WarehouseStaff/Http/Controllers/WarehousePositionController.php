@@ -3,11 +3,12 @@
 namespace Botble\Inventory\Domains\WarehouseStaff\Http\Controllers;
 
 use Botble\Base\Http\Actions\DeleteResourceAction;
-use Botble\Inventory\Http\Requests\InventoryRequest;
-use Botble\Inventory\Models\Inventory;
+use Botble\Inventory\Domains\WarehouseStaff\Http\Requests\WarehousePositionRequest;
+use Botble\Inventory\Domains\WarehouseStaff\Models\WarehousePosition;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Inventory\Domains\WarehouseStaff\Tables\WarehousePositionTable;
 use Botble\Inventory\Forms\InventoryForm;
+use Botble\Inventory\Domains\WarehouseStaff\Forms\WarehousePositionForm;
 
 class WarehousePositionController extends BaseController
 {
@@ -21,7 +22,7 @@ class WarehousePositionController extends BaseController
     public function index(WarehousePositionTable $table)
     {
         $this->pageTitle(trans('plugins/inventory::inventory.warehouse_positions.name'));
-
+        
         return $table->renderTable();
     }
 
@@ -29,43 +30,43 @@ class WarehousePositionController extends BaseController
     {
         $this->pageTitle(trans('plugins/inventory::inventory.create'));
 
-        return InventoryForm::create()->renderForm();
+        return WarehousePositionForm::create()->renderForm();
     }
 
-    public function store(InventoryRequest $request)
+    public function store(WarehousePositionRequest $request)
     {
-        $form = InventoryForm::create()->setRequest($request);
+        $form = WarehousePositionForm::create()->setRequest($request);
 
         $form->save();
 
         return $this
             ->httpResponse()
-            ->setPreviousUrl(route('inventory.index'))
-            ->setNextUrl(route('inventory.edit', $form->getModel()->getKey()))
+            ->setPreviousUrl(route('inventory.warehouse-positions.index'))
+            ->setNextUrl(route('inventory.warehouse-positions.edit', $form->getModel()->getKey()))
             ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
-    public function edit(Inventory $inventory)
+    public function edit(WarehousePosition $warehousePosition)
     {
-        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $inventory->name]));
+        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $warehousePosition->name]));
 
-        return InventoryForm::createFromModel($inventory)->renderForm();
+        return WarehousePositionForm::createFromModel($warehousePosition)->renderForm();
     }
 
-    public function update(Inventory $inventory, InventoryRequest $request)
+    public function update(WarehousePosition $warehousePosition, WarehousePositionRequest $request)
     {
-        InventoryForm::createFromModel($inventory)
+        WarehousePositionForm::createFromModel($warehousePosition)
             ->setRequest($request)
             ->save();
 
         return $this
             ->httpResponse()
-            ->setPreviousUrl(route('inventory.index'))
+            ->setPreviousUrl(route('inventory.warehouse-positions.index'))
             ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    public function destroy(Inventory $inventory)
+    public function destroy(WarehousePosition $warehousePosition)
     {
-        return DeleteResourceAction::make($inventory);
+        return DeleteResourceAction::make($warehousePosition);
     }
 }
