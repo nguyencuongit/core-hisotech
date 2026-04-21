@@ -1,9 +1,9 @@
 <?php
 
-namespace Botble\Inventory\Domains\WarehouseStaff\Tables;
+namespace Botble\Inventory\Domains\Warehouse\Tables;
 
 use Botble\Base\Facades\BaseHelper;
-use Botble\Inventory\Domains\WarehouseStaff\Models\WarehousePosition;
+use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Botble\Table\Abstracts\TableAbstract;
 use Botble\Table\Actions\DeleteAction;
 use Botble\Table\Actions\EditAction;
@@ -17,21 +17,25 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 
-class WarehousePositionTable extends TableAbstract
+class WarehouseTable extends TableAbstract
 {
     public function setup(): void
     {
         $this
-            ->model(WarehousePosition::class)
+            ->model(Warehouse::class)
             ->addHeaderAction(
-                CreateHeaderAction::make()->route('inventory.warehouse-positions.create')->permission('warehouse-positions.create')
+                CreateHeaderAction::make()->route('inventory.warehouse.create')->permission('warehouse.create')
             )
             ->addActions([
-                EditAction::make()->route('inventory.warehouse-positions.edit')->permission('warehouse-positions.create'),
-                DeleteAction::make()->route('inventory.warehouse-positions.destroy')->permission('warehouse-positions.destroy'),
+                EditAction::make('show')
+                ->label('Xem')
+                ->icon('ti ti-map-2')
+                ->route('inventory.warehouse.show'),
+                EditAction::make()->route('inventory.warehouse.edit')->permission('warehouse.create'),
+                DeleteAction::make()->route('inventory.warehouse.destroy')->permission('warehouse.destroy'),
             ])
             ->addBulkActions([
-                DeleteBulkAction::make()->permission('warehouse-positions.destroy'),
+                DeleteBulkAction::make()->permission('warehouse.destroy'),
             ]);
     }
 
@@ -39,8 +43,8 @@ class WarehousePositionTable extends TableAbstract
     {
         $data = $this->table
             ->eloquent($this->query())
-            ->editColumn('is_active', function (WarehousePosition $item) {
-                return (int) $item->is_active === 1
+            ->editColumn('status', function (Warehouse $item) {
+                return (int) $item->status === 1
                     ? '<span class="badge bg-success-lt text-success">Active</span>'
                     : '<span class="badge bg-danger-lt text-danger">Inactive</span>';
             });
@@ -56,7 +60,16 @@ class WarehousePositionTable extends TableAbstract
             ->select([
                 'id',
                 'name',
-                'is_active',
+                'code',
+                'type',
+                'manager_id',
+                'address',
+                'province_id',
+                'ward_id',
+                'phone',
+                'email',
+                'status',
+                'description',
                 'created_at',
             ]);
 
@@ -67,11 +80,17 @@ class WarehousePositionTable extends TableAbstract
     {
         return [
             IdColumn::make(),
-
+            
             NameColumn::make()
-                ->route('inventory.warehouse-positions.edit'),
+                ->route('inventory.warehouse.edit'),
 
-            Column::make('is_active')
+            Column::make('code')
+                ->title('Mã kho'),
+
+            Column::make('address')
+                ->title('Địa chỉ kho'),
+
+            Column::make('status')
                 ->title('Active')
                 ->alignCenter(),
 

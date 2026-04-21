@@ -21,7 +21,7 @@ class WarehouseStaffProvider extends ServiceProvider
                     'name' => 'plugins/inventory::inventory.warehouse-staff.name',
                     'icon' => 'ti ti-user-cog',
                     'url' => route('inventory.warehouse-staff.index'),
-                    'permissions' => ['inventory.warehouse-staff.index'],
+                    'permissions' => ['warehouse-staff.index'],
                 ]);
             DashboardMenu::registerItem([
                     'id' => 'cms-plugins-inventory-warehouse_positions',
@@ -30,8 +30,14 @@ class WarehouseStaffProvider extends ServiceProvider
                     'name' => 'plugins/inventory::inventory.warehouse_positions.name',
                     'icon' => 'ti ti-briefcase',
                     'url' => route('inventory.warehouse-positions.index'),
-                    'permissions' => ['inventory.warehouse_positions.index'],
+                    'permissions' => ['warehouse-positions.index'],
                 ]);
         });
+
+
+        //  app('router')->aliasMiddleware(
+        //     'warehouse.permission',
+        //     \Botble\Inventory\Domains\WarehouseStaff\Http\Middleware\CheckWarehousePositionPermission::class
+        // );
     }
 }

@@ -50,4 +50,47 @@ return [
         'flag' => 'inventory.suppliers.manage_products',
         'parent_flag' => 'inventory.suppliers.index',
     ],
+        // staff
+    [
+        'name' => 'warehouse-staff',
+        'flag' => 'warehouse-staff.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'warehouse-staff.create',
+        'parent_flag' => 'warehouse-staff.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'warehouse-staff.edit',
+        'parent_flag' => 'warehouse-staff.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'warehouse-staff.destroy',
+        'parent_flag' => 'warehouse-staff.index',
+    ],
+
+       // warehouse
+    [
+        'name' => 'warehouse',
+        'flag' => 'warehouse.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'warehouse.create',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'warehouse.edit',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'warehouse.destroy',
+        'parent_flag' => 'warehouse.index',
+    ],
 ];

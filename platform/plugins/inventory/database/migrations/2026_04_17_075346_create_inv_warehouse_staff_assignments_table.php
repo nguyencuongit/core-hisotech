@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('warehouse_id')->nullable();
             $table->unsignedBigInteger('position_id')->nullable();
 
-            $table->boolean('is_primary')->default(false);
+            $table->boolean('is_primary')->default(true);
             $table->boolean('status')->default(true);
 
             $table->date('start_date')->nullable();
