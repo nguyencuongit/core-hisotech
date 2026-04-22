@@ -5,32 +5,13 @@ namespace Botble\Inventory\Providers;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-
 use Botble\Inventory\Models\Inventory;
-use Botble\Inventory\Models\Supplier;
-use Botble\Inventory\Models\SupplierAddress;
-use Botble\Inventory\Models\SupplierBank;
-use Botble\Inventory\Models\SupplierContact;
-use Botble\Inventory\Models\SupplierProduct;
-
-use Botble\Inventory\Repositories\Eloquent\SupplierAddressRepository;
-use Botble\Inventory\Repositories\Eloquent\SupplierBankRepository;
-use Botble\Inventory\Repositories\Eloquent\SupplierContactRepository;
-use Botble\Inventory\Repositories\Eloquent\SupplierProductRepository;
-use Botble\Inventory\Repositories\Eloquent\SupplierRepository;
-use Botble\Inventory\Repositories\Interfaces\SupplierAddressInterface;
-use Botble\Inventory\Repositories\Interfaces\SupplierBankInterface;
-use Botble\Inventory\Repositories\Interfaces\SupplierContactInterface;
-use Botble\Inventory\Repositories\Interfaces\SupplierInterface;
-use Botble\Inventory\Repositories\Interfaces\SupplierProductInterface;
-
-use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
-use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
-use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
-use Botble\Inventory\Models\Inventory;
-
 use Botble\Inventory\Support\InventoryContext;
 use Botble\Inventory\Http\Middleware\InventoryContextMiddleware;
+use Botble\Inventory\Domains\GoodsReceipt\Providers\GoodsReceiptProvider;
+use Botble\Inventory\Domains\Supplier\Providers\SupplierProvider;
+use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
+use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
 use Illuminate\Routing\Router;
 
 class InventoryServiceProvider extends ServiceProvider
@@ -42,17 +23,7 @@ class InventoryServiceProvider extends ServiceProvider
         require_once __DIR__ . '/../Helpers/common.php';
         $this->app->singleton(InventoryContext::class, function () {
             return new InventoryContext();
-        });
-
-
-        $this->app->bind(SupplierInterface::class, fn () => new SupplierRepository(new Supplier()));
-        $this->app->bind(SupplierContactInterface::class, fn () => new SupplierContactRepository(new SupplierContact()));
-        $this->app->bind(SupplierAddressInterface::class, fn () => new SupplierAddressRepository(new SupplierAddress()));
-        $this->app->bind(SupplierBankInterface::class, fn () => new SupplierBankRepository(new SupplierBank()));
-        $this->app->bind(SupplierProductInterface::class, fn () => new SupplierProductRepository(new SupplierProduct()));
-        
-        
-        
+        });        
 
     }
 
