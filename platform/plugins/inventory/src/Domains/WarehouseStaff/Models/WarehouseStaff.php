@@ -6,6 +6,9 @@ use Botble\Base\Casts\SafeContent;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
 use Illuminate\Support\Facades\DB;
+use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
+use Botble\Inventory\Domains\WarehouseStaff\Models\WarehouseStaffAssignments;
+
 
 class WarehouseStaff extends BaseModel
 {
@@ -58,5 +61,14 @@ class WarehouseStaff extends BaseModel
             )
             ->where('s.id', $id)
             ->first();
+    }
+
+   public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id', 'id');
+    }
+    public function assignments()
+    {
+        return $this->hasMany(WarehouseStaffAssignments::class, 'staff_id');
     }
 }

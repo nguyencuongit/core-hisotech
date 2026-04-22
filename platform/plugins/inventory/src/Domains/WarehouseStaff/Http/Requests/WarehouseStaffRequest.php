@@ -10,8 +10,8 @@ class WarehouseStaffRequest extends Request
 {
     public function rules(): array
     {
-        $id = $this->route('WarehouseStaff') 
-        ? $this->route('WarehouseStaff')->id 
+        $id = $this->route('warehouseStaff') 
+        ? $this->route('warehouseStaff')->id 
         : null;
 
         return [
@@ -24,6 +24,8 @@ class WarehouseStaffRequest extends Request
                 'max:220',
                 Rule::unique('inv_warehouse_staff', 'staff_code')->ignore($id),
             ],
+            'warehouse_id' => ['required', 'array'],
+            
         ];
     }
 }

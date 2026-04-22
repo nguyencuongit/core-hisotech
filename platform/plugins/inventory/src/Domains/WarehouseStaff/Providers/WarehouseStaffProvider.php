@@ -7,9 +7,25 @@ use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Inventory\Models\Inventory;
 
+// interface
+use Botble\Inventory\Domains\WarehouseStaff\Repositories\Interfaces\WarehouseStaffAssignmentInterface;
+//repository
+use Botble\Inventory\Domains\WarehouseStaff\Repositories\Eloquent\WarehouseStaffAssignmentRepository;
+//model
+use Botble\Inventory\Domains\WarehouseStaff\Models\WarehouseStaffAssignments;
+
 class WarehouseStaffProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
+
+    public function register(): void
+    {
+        $this->app->bind(WarehouseStaffAssignmentInterface::class, function () {
+            return new WarehouseStaffAssignmentRepository(new WarehouseStaffAssignments());
+        });
+        
+        
+    }
 
     public function boot(): void
     {

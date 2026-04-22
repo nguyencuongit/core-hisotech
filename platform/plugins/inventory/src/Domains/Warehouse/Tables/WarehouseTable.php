@@ -15,6 +15,8 @@ use Botble\Table\HeaderActions\CreateHeaderAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
+use Botble\Inventory\Support\InventoryContext;
+
 
 class WarehouseTable extends TableAbstract
 {
@@ -72,6 +74,11 @@ class WarehouseTable extends TableAbstract
                 'description',
                 'created_at',
             ]);
+
+        $warehouseIds = inventory_warehouse_ids();
+        if(!inventory_is_super_admin() && !empty($warehouseIds)){
+            $query->whereIn('id',$warehouseIds);
+        }
 
         return $this->applyScopes($query);
     }
