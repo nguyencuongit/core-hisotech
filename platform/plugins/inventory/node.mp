@@ -52,12 +52,16 @@ inv_suppliers_items
 inv_warehouses_product  
     id,  prd_id , id_warehouse
 
+//o
 inv_warehouses
 inv_warehouse_locations
+
+
 inv_export
 inv_export_items
 inv_import
 inv_import_items
+
 inv_packing_lists (danh sách đóng gói)
 inv_packing_list_items 
 inv_setting
