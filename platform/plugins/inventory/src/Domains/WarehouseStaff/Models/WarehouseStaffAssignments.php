@@ -5,6 +5,7 @@ namespace Botble\Inventory\Domains\WarehouseStaff\Models;
 use Botble\Base\Casts\SafeContent;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
+use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 
 class WarehouseStaffAssignments extends BaseModel
 {
@@ -23,4 +24,9 @@ class WarehouseStaffAssignments extends BaseModel
     protected $casts = [
 
     ];
+
+    public function warehouse()
+{
+    return $this->belongsTo(Warehouse::class, 'warehouse_id');
+}
 }
