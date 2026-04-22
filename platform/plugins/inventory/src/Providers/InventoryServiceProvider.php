@@ -22,6 +22,7 @@ use Botble\Inventory\Repositories\Interfaces\SupplierContactInterface;
 use Botble\Inventory\Repositories\Interfaces\SupplierInterface;
 use Botble\Inventory\Repositories\Interfaces\SupplierProductInterface;
 use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
+use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
 
 class InventoryServiceProvider extends ServiceProvider
 {
@@ -91,5 +92,6 @@ class InventoryServiceProvider extends ServiceProvider
         });
 
         $this->app->register(WarehouseStaffProvider::class);
+        $this->app->register(WarehouseProvider::class);
     }
 }

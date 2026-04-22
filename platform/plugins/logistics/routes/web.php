@@ -9,7 +9,7 @@ use Botble\Logistics\Http\Controllers\GetAddressController;
 use Botble\Logistics\Http\Controllers\ShippingFeeController;
 use Botble\Logistics\Http\Controllers\WebhookController;
 use Botble\Logistics\Http\Controllers\DashboardController;
-use Botble\Logistics\Http\Controllers\ReportWidgetConfigController;
+// use Botble\Logistics\Http\Controllers\ReportWidgetConfigController;
 use Illuminate\Support\Facades\Route;
 
 AdminHelper::registerRoutes(function () {
@@ -44,16 +44,16 @@ AdminHelper::registerRoutes(function () {
             //     'permission' => 'ecommerce.report.index',
             // ]);
 
-            Route::group(['prefix' => 'widget-config', 'as' => 'widget-config.'], function (): void {
-                Route::get('/', [ReportWidgetConfigController::class, 'index'])
-                    ->name('index');
+            // Route::group(['prefix' => 'widget-config', 'as' => 'widget-config.'], function (): void {
+            //     Route::get('/', [ReportWidgetConfigController::class, 'index'])
+            //         ->name('index');
 
-                Route::get('save', [ReportWidgetConfigController::class, 'store'])
-                    ->name('save');
+            //     Route::get('save', [ReportWidgetConfigController::class, 'store'])
+            //         ->name('save');
                 
-                Route::get('get', [ReportWidgetConfigController::class, 'getConfiguration'])
-                    ->name('get');
-            });
+            //     Route::get('get', [ReportWidgetConfigController::class, 'getConfiguration'])
+            //         ->name('get');
+            // });
         });
 
         Route::resource('', LogisticsController::class)->parameters(['' => 'logistics']);
