@@ -17,6 +17,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Botble\Table\Columns\StatusColumn;
+use Botble\Table\Columns\FormattedColumn;
+use Botble\Inventory\Domains\WarehouseStaff\Models\WarehouseStaffAssignments;
+
+
+
 
 class WarehouseStaffTable extends TableAbstract
 {
@@ -43,6 +48,8 @@ class WarehouseStaffTable extends TableAbstract
         $query = $this
             ->getModel()
             ->query()
+            ->with('warehouse')
+            ->with('assignments.warehouse')
             ->select([
                 'id',
                 'user_id',
@@ -53,6 +60,13 @@ class WarehouseStaffTable extends TableAbstract
                 'status',
                 'created_at',
             ]);
+        
+        $warehouseIds = inventory_warehouse_ids();
+        if(!inventory_is_super_admin() && !empty($warehouseIds)){
+            $query->whereHas('assignments', function ($q) use ($warehouseIds) {
+                $q->whereIn('warehouse_id', $warehouseIds);
+            });
+        }
 
         return $this->applyScopes($query);
     }
@@ -61,9 +75,24 @@ class WarehouseStaffTable extends TableAbstract
     {
         return [
             IdColumn::make(),
-
+    
             NameColumn::make('full_name')
                 ->route('inventory.warehouse-staff.edit'),
+            FormattedColumn::make('warehouses')
+                ->title('Kho')
+                ->orderable(false)
+                ->searchable(false)
+                ->renderUsing(function (FormattedColumn $column) {
+                    $warehouses = $column->getItem()
+                        ->assignments
+                        ->pluck('warehouse.name')
+                        ->filter()
+                        ->implode(', ');
+
+                    return $warehouses ?: '&mdash;';
+                }),
+
+        
             Column::make('staff_code')->title('Mã nhân viên'),
             Column::make('phone')->title('Số điện thoại'),
             Column::make('email')->title('Email'),

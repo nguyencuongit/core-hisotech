@@ -7,8 +7,9 @@ use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehousePositionCo
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
+//
 AdminHelper::registerRoutes(function () {
-    Route::group(['prefix' => 'inventories', 'as' => 'inventory.'], function () {
+    Route::group(['prefix' => 'inventories', 'as' => 'inventory.','middleware' => ['web', 'core', 'auth', 'inventory.context']], function () {
         Route::resource('', InventoryController::class)->parameters(['' => 'inventory']);
 
         // positions
