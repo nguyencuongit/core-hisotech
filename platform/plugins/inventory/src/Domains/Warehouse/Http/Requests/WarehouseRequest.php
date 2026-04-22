@@ -2,7 +2,6 @@
 
 namespace Botble\Inventory\Domains\Warehouse\Http\Requests;
 
-use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Support\Http\Requests\Request;
 use Illuminate\Validation\Rule;
 

@@ -5,10 +5,20 @@ namespace Botble\Inventory\Domains\Supplier\Providers;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
+use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Repositories\Eloquent\SupplierRepository;
+use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 
 class SupplierProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
+
+    public function register(): void
+    {
+        $this->app->bind(SupplierInterface::class, function () {
+            return new SupplierRepository(new Supplier());
+        });
+    }
 
     public function boot(): void
     {

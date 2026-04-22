@@ -15,8 +15,6 @@ use Botble\Table\HeaderActions\CreateHeaderAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
-use Botble\Inventory\Support\InventoryContext;
-
 
 class WarehouseTable extends TableAbstract
 {
@@ -29,10 +27,10 @@ class WarehouseTable extends TableAbstract
             )
             ->addActions([
                 EditAction::make('show')
-                ->label('Xem')
-                ->icon('ti ti-map-2')
-                ->route('inventory.warehouse.show')
-                ->permission('warehouse.show'),
+                    ->label('Xem')
+                    ->icon('ti ti-map-2')
+                    ->route('inventory.warehouse.show')
+                    ->permission('warehouse.show'),
                 EditAction::make()->route('inventory.warehouse.edit')->permission('warehouse.edit'),
                 DeleteAction::make()->route('inventory.warehouse.destroy')->permission('warehouse.destroy'),
             ])
@@ -76,8 +74,8 @@ class WarehouseTable extends TableAbstract
             ]);
 
         $warehouseIds = inventory_warehouse_ids();
-        if(!inventory_is_super_admin() && !empty($warehouseIds)){
-            $query->whereIn('id',$warehouseIds);
+        if (! inventory_is_super_admin() && ! empty($warehouseIds)) {
+            $query->whereIn('id', $warehouseIds);
         }
 
         return $this->applyScopes($query);
@@ -87,7 +85,7 @@ class WarehouseTable extends TableAbstract
     {
         return [
             IdColumn::make(),
-            
+
             NameColumn::make()
                 ->route('inventory.warehouse.edit'),
 

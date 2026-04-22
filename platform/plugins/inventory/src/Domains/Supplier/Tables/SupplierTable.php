@@ -65,7 +65,7 @@ class SupplierTable extends TableAbstract
 
                         $meta = array_filter([$contact->position, $contact->phone, $contact->email]);
                         $title = Html::tag('div', e($contact->name), ['class' => 'fw-semibold'])->toHtml();
-                        $subtitle = $meta ? Html::tag('div', e(implode(' · ', $meta)), ['class' => 'text-muted small'])->toHtml() : '';
+                        $subtitle = $meta ? Html::tag('div', e(implode(' - ', $meta)), ['class' => 'text-muted small'])->toHtml() : '';
 
                         return $title . $subtitle;
                     }),

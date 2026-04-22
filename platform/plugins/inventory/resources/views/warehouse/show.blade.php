@@ -372,9 +372,9 @@
 
             const parts = [];
 
-            if (data.purchase_price) parts.push(`Gia: ${data.purchase_price}`);
+            if (data.purchase_price) parts.push(`Giá: ${data.purchase_price}`);
             if (data.moq) parts.push(`MOQ: ${data.moq}`);
-            if (data.lead_time_days) parts.push(`Lead time: ${data.lead_time_days} ngay`);
+            if (data.lead_time_days) parts.push(`Lead time: ${data.lead_time_days} ngày`);
 
             target.textContent = `${supplierTermsLabel}: ${parts.length ? parts.join(' - ') : '-'}`;
             target.classList.remove('d-none');
@@ -454,7 +454,7 @@
                     const parts = [];
                     if (product.sku) parts.push(`SKU: ${product.sku}`);
                     if (product.barcode) parts.push(`Barcode: ${product.barcode}`);
-                    if (product.quantity !== null && product.quantity !== undefined) parts.push(`Ton TMDT: ${product.quantity}`);
+                    if (product.quantity !== null && product.quantity !== undefined) parts.push(`Tồn TMĐT: ${product.quantity}`);
                     meta.textContent = parts.join(' - ');
                 }
 

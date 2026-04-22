@@ -4,6 +4,7 @@ use Botble\Base\Facades\AdminHelper;
 use Botble\Inventory\Domains\GoodsReceipt\Http\Controllers\GoodsReceiptController;
 use Botble\Inventory\Domains\Supplier\Http\Controllers\SupplierController;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseController;
+use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseProductCatalogController;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseProductController;
 use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehousePositionController;
 use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffController;
@@ -98,6 +99,17 @@ AdminHelper::registerRoutes(function () {
         });
 
         Route::group([
+            'prefix' => 'warehouse-products',
+            'as' => 'warehouse-products.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => WarehouseProductCatalogController::class . '@index',
+                'as' => 'index',
+                'permission' => 'warehouse.index',
+            ]);
+        });
+
+        Route::group([
             'prefix' => 'warehouse',
             'as' => 'warehouse.',
         ], function () {
@@ -184,6 +196,12 @@ AdminHelper::registerRoutes(function () {
                 'permission' => 'inventory.suppliers.index',
             ]);
 
+            Route::get('/products/search', [
+                'uses' => SupplierController::class . '@searchProducts',
+                'as' => 'products.search',
+                'permission' => 'inventory.suppliers.index',
+            ]);
+
             Route::get('/create', [
                 'uses' => SupplierController::class . '@create',
                 'as' => 'create',
@@ -242,12 +260,6 @@ AdminHelper::registerRoutes(function () {
                 'uses' => SupplierController::class . '@reject',
                 'as' => 'reject',
                 'permission' => 'inventory.suppliers.edit',
-            ]);
-
-            Route::get('/products/search', [
-                'uses' => SupplierController::class . '@searchProducts',
-                'as' => 'products.search',
-                'permission' => 'inventory.suppliers.index',
             ]);
         });
 

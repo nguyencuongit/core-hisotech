@@ -9,6 +9,7 @@ use Botble\Inventory\Domains\Supplier\Http\Requests\SupplierRequest;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
 use Botble\Inventory\Domains\Supplier\Services\SupplierService;
 use Botble\Inventory\Domains\Supplier\Tables\SupplierTable;
+use Botble\Inventory\Domains\Supplier\Usecase\SupplierUsecase;
 use Botble\Inventory\Enums\SupplierStatusEnum;
 use Illuminate\Http\JsonResponse;
 
@@ -50,33 +51,33 @@ class SupplierController extends BaseController
             ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
-    public function show(Supplier $supplier)
+    public function show(Supplier $supplier, SupplierUsecase $supplierUsecase)
     {
         abort_unless(auth()->user()?->hasPermission('inventory.suppliers.show'), 403);
 
-        $supplier->load(['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals.actor', 'creator', 'submitter', 'approver']);
+        $supplier = $supplierUsecase->loadForShow($supplier);
 
         $this->pageTitle($supplier->name);
 
         return view('plugins/inventory::suppliers.show', compact('supplier'));
     }
 
-    public function approval(Supplier $supplier)
+    public function approval(Supplier $supplier, SupplierUsecase $supplierUsecase)
     {
         abort_unless(auth()->user()?->isSuperUser(), 403);
 
-        $supplier->load(['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals.actor', 'creator', 'submitter', 'approver']);
+        $supplier = $supplierUsecase->loadForApproval($supplier);
 
         $this->pageTitle(trans('plugins/inventory::inventory.supplier.approval_page.title'));
 
         return view('plugins/inventory::suppliers.approval', compact('supplier'));
     }
 
-    public function edit(Supplier $supplier)
+    public function edit(Supplier $supplier, SupplierUsecase $supplierUsecase)
     {
         abort_unless(auth()->user()?->hasPermission('inventory.suppliers.edit'), 403);
 
-        $supplier->load(['contacts', 'addresses', 'banks', 'supplierProducts.product', 'creator', 'submitter', 'approver']);
+        $supplier = $supplierUsecase->loadForEdit($supplier);
 
         $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $supplier->name]));
 
