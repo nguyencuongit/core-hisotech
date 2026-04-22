@@ -50,6 +50,31 @@ return [
         'flag' => 'inventory.suppliers.manage_products',
         'parent_flag' => 'inventory.suppliers.index',
     ],
+    [
+        'name' => 'Goods receipts',
+        'flag' => 'inventory.goods-receipts.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'inventory.goods-receipts.create',
+        'parent_flag' => 'inventory.goods-receipts.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'inventory.goods-receipts.show',
+        'parent_flag' => 'inventory.goods-receipts.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'inventory.goods-receipts.edit',
+        'parent_flag' => 'inventory.goods-receipts.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'inventory.goods-receipts.delete',
+        'parent_flag' => 'inventory.goods-receipts.index',
+    ],
         // staff
     [
         'name' => 'warehouse-staff',
@@ -86,6 +111,16 @@ return [
     [
         'name' => 'Edit',
         'flag' => 'warehouse.edit',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'warehouse.show',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Manage products',
+        'flag' => 'warehouse.products.manage',
         'parent_flag' => 'warehouse.index',
     ],
     [

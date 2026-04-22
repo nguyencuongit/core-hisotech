@@ -2,9 +2,8 @@
 
 namespace Botble\Inventory\Domains\Warehouse\Models;
 
-use Botble\Base\Casts\SafeContent;
-use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Warehouse extends BaseModel
 {
@@ -27,4 +26,14 @@ class Warehouse extends BaseModel
     protected $casts = [
 
     ];
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(WarehouseLocation::class, 'warehouse_id');
+    }
+
+    public function warehouseProducts(): HasMany
+    {
+        return $this->hasMany(WarehouseProduct::class, 'warehouse_id');
+    }
 }

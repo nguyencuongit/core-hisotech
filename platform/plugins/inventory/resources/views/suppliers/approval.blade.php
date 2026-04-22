@@ -11,11 +11,12 @@
 
     <style>
         .supplier-approval-page {
-            --supplier-approval-ink: #101828;
-            --supplier-approval-muted: #667085;
-            --supplier-approval-line: #e4e7ec;
+            --supplier-approval-ink: #0f172a;
+            --supplier-approval-muted: #64748b;
+            --supplier-approval-line: #e2e8f0;
             --supplier-approval-soft: #f8fafc;
             --supplier-approval-primary: #2563eb;
+            --supplier-approval-primary-2: #7c3aed;
             --supplier-approval-success: #16a34a;
             --supplier-approval-danger: #dc2626;
         }
@@ -29,12 +30,26 @@
 
         .supplier-approval-page .approval-header {
             color: #fff;
-            background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #047857 100%);
-            border-radius: 18px;
-            padding: 24px;
+            background:
+                radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 28%),
+                linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #7c3aed 100%);
+            border-radius: 24px;
+            padding: 28px;
             margin-bottom: 18px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, .18);
+        }
+
+        .supplier-approval-page .approval-header::before {
+            content: "";
+            position: absolute;
+            inset: 18px auto auto -32px;
+            width: 130px;
+            height: 130px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.08);
+            filter: blur(8px);
         }
 
         .supplier-approval-page .approval-header::after {
@@ -49,6 +64,20 @@
         .supplier-approval-page .approval-header > * {
             position: relative;
             z-index: 1;
+        }
+
+        .supplier-approval-page .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.18);
+            backdrop-filter: blur(10px);
+            font-size: 12px;
+            letter-spacing: .02em;
+            text-transform: uppercase;
         }
 
         .supplier-approval-page .approval-kicker {
@@ -92,10 +121,11 @@
         }
 
         .supplier-approval-page .approval-panel {
-            background: #fff;
-            border: 1px solid var(--supplier-approval-line);
-            border-radius: 18px;
-            box-shadow: 0 14px 34px rgba(15, 23, 42, .08);
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226,232,240,.9);
+            border-radius: 20px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
             overflow: hidden;
         }
 
@@ -110,6 +140,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            background: linear-gradient(180deg, rgba(248,250,252,.95), rgba(255,255,255,.9));
         }
 
         .supplier-approval-page .panel-title {
@@ -197,9 +228,9 @@
 
         .supplier-approval-page .info-strip:hover,
         .supplier-approval-page .product-row:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.01);
             border-color: #bfdbfe;
-            box-shadow: 0 12px 24px rgba(37, 99, 235, .08);
+            box-shadow: 0 16px 28px rgba(37, 99, 235, .10);
         }
 
         .supplier-approval-page .info-icon,
@@ -342,6 +373,14 @@
         .supplier-approval-page .decision-actions .btn {
             min-height: 46px;
             font-weight: 700;
+            border-radius: 14px;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, .08);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .supplier-approval-page .decision-actions .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 26px rgba(15, 23, 42, .12);
         }
 
         .supplier-approval-page .pending-pulse {
@@ -423,7 +462,11 @@
             <div class="approval-header">
                 <div class="row g-3 align-items-start">
                     <div class="col-lg-8">
-                        <div class="approval-kicker">{{ trans('plugins/inventory::inventory.supplier.approval_page.title') }}</div>
+                        <div class="hero-badge mb-3">
+                            <x-core::icon name="ti ti-sparkles" />
+                            {{ trans('plugins/inventory::inventory.supplier.approval_page.title') }}
+                        </div>
+                        <div class="approval-kicker">{{ trans('plugins/inventory::inventory.supplier.approval_page.subtitle') }}</div>
                         <h1 class="approval-title">{{ $supplier->name }}</h1>
                         <p class="approval-subtitle">{{ trans('plugins/inventory::inventory.supplier.approval_page.subtitle') }}</p>
                     </div>
