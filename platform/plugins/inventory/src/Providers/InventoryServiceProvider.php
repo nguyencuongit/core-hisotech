@@ -26,6 +26,8 @@ use Botble\Inventory\Repositories\Interfaces\SupplierProductInterface;
 
 use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
 use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
+use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
+use Botble\Inventory\Models\Inventory;
 
 use Botble\Inventory\Support\InventoryContext;
 use Botble\Inventory\Http\Middleware\InventoryContextMiddleware;
@@ -108,6 +110,8 @@ class InventoryServiceProvider extends ServiceProvider
             // ]);
         });
 
+        $this->app->register(SupplierProvider::class);
+        $this->app->register(GoodsReceiptProvider::class);
         $this->app->register(WarehouseStaffProvider::class);
         $this->app->register(WarehouseProvider::class);
 

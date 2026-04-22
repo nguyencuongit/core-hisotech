@@ -1,10 +1,13 @@
 <?php
 
 use Botble\Base\Facades\AdminHelper;
-use Botble\Inventory\Http\Controllers\InventoryController;
-use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffController;
-use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehousePositionController;
+use Botble\Inventory\Domains\GoodsReceipt\Http\Controllers\GoodsReceiptController;
+use Botble\Inventory\Domains\Supplier\Http\Controllers\SupplierController;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseController;
+use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseProductController;
+use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehousePositionController;
+use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffController;
+use Botble\Inventory\Http\Controllers\InventoryController;
 use Illuminate\Support\Facades\Route;
 
 //
@@ -12,7 +15,6 @@ AdminHelper::registerRoutes(function () {
     Route::group(['prefix' => 'inventories', 'as' => 'inventory.','middleware' => ['web', 'core', 'auth', 'inventory.context']], function () {
         Route::resource('', InventoryController::class)->parameters(['' => 'inventory']);
 
-        // positions
         Route::group([
             'prefix' => 'warehouse_positions',
             'as' => 'warehouse-positions.',
@@ -54,7 +56,6 @@ AdminHelper::registerRoutes(function () {
             ]);
         });
 
-        // staff
         Route::group([
             'prefix' => 'warehouse_staff',
             'as' => 'warehouse-staff.',
@@ -96,7 +97,6 @@ AdminHelper::registerRoutes(function () {
             ]);
         });
 
-        // warehouse
         Route::group([
             'prefix' => 'warehouse',
             'as' => 'warehouse.',
@@ -131,16 +131,182 @@ AdminHelper::registerRoutes(function () {
                 'permission' => 'warehouse.edit',
             ]);
 
+            Route::get('/{warehouse}/products/search', [
+                'uses' => WarehouseProductController::class . '@searchProducts',
+                'as' => 'products.search',
+                'permission' => 'warehouse.index',
+            ]);
+
+            Route::get('/{warehouse}/products/supplier-product', [
+                'uses' => WarehouseProductController::class . '@supplierProduct',
+                'as' => 'products.supplier-product',
+                'permission' => 'warehouse.index',
+            ]);
+
+            Route::post('/{warehouse}/products', [
+                'uses' => WarehouseProductController::class . '@store',
+                'as' => 'products.store',
+                'permission' => 'warehouse.products.manage',
+            ]);
+
+            Route::match(['POST', 'PUT'], '/{warehouse}/products/{warehouseProduct}', [
+                'uses' => WarehouseProductController::class . '@update',
+                'as' => 'products.update',
+                'permission' => 'warehouse.products.manage',
+            ]);
+
+            Route::delete('/{warehouse}/products/{warehouseProduct}', [
+                'uses' => WarehouseProductController::class . '@destroy',
+                'as' => 'products.destroy',
+                'permission' => 'warehouse.products.manage',
+            ]);
+
+            Route::get('/{warehouse}', [
+                'uses' => WarehouseController::class . '@show',
+                'as' => 'show',
+                'permission' => 'warehouse.show',
+            ]);
+
             Route::delete('/{warehouse}', [
                 'uses' => WarehouseController::class . '@destroy',
                 'as' => 'destroy',
                 'permission' => 'warehouse.destroy',
             ]);
+        });
 
-            Route::get('/show', [
-                'uses' => WarehouseController::class . '@show',
+        Route::group([
+            'prefix' => 'suppliers',
+            'as' => 'suppliers.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => SupplierController::class . '@index',
+                'as' => 'index',
+                'permission' => 'inventory.suppliers.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => SupplierController::class . '@create',
+                'as' => 'create',
+                'permission' => 'inventory.suppliers.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => SupplierController::class . '@store',
+                'as' => 'store',
+                'permission' => 'inventory.suppliers.create',
+            ]);
+
+            Route::get('/approval/{supplier}', [
+                'uses' => SupplierController::class . '@approval',
+                'as' => 'approval',
+                'permission' => 'inventory.suppliers.show',
+            ]);
+
+            Route::get('/edit/{supplier}', [
+                'uses' => SupplierController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'inventory.suppliers.edit',
+            ]);
+
+            Route::match(['POST', 'PUT'], '/edit/{supplier}', [
+                'uses' => SupplierController::class . '@update',
+                'as' => 'update',
+                'permission' => 'inventory.suppliers.edit',
+            ]);
+
+            Route::get('/{supplier}', [
+                'uses' => SupplierController::class . '@show',
                 'as' => 'show',
-                'permission' => 'warehouse.show',
+                'permission' => 'inventory.suppliers.show',
+            ]);
+
+            Route::delete('/{supplier}', [
+                'uses' => SupplierController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'inventory.suppliers.delete',
+            ]);
+
+            Route::post('/{supplier}/submit', [
+                'uses' => SupplierController::class . '@submit',
+                'as' => 'submit',
+                'permission' => 'inventory.suppliers.edit',
+            ]);
+
+            Route::post('/{supplier}/approve', [
+                'uses' => SupplierController::class . '@approve',
+                'as' => 'approve',
+                'permission' => 'inventory.suppliers.edit',
+            ]);
+
+            Route::post('/{supplier}/reject', [
+                'uses' => SupplierController::class . '@reject',
+                'as' => 'reject',
+                'permission' => 'inventory.suppliers.edit',
+            ]);
+
+            Route::get('/products/search', [
+                'uses' => SupplierController::class . '@searchProducts',
+                'as' => 'products.search',
+                'permission' => 'inventory.suppliers.index',
+            ]);
+        });
+
+        Route::group([
+            'prefix' => 'goods-receipts',
+            'as' => 'goods-receipts.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => GoodsReceiptController::class . '@index',
+                'as' => 'index',
+                'permission' => 'inventory.goods-receipts.index',
+            ]);
+
+            Route::get('/products/search', [
+                'uses' => GoodsReceiptController::class . '@searchProducts',
+                'as' => 'products.search',
+                'permission' => 'inventory.goods-receipts.index',
+            ]);
+
+            Route::get('/supplier-products', [
+                'uses' => GoodsReceiptController::class . '@supplierProducts',
+                'as' => 'supplier-products',
+                'permission' => 'inventory.goods-receipts.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => GoodsReceiptController::class . '@create',
+                'as' => 'create',
+                'permission' => 'inventory.goods-receipts.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => GoodsReceiptController::class . '@store',
+                'as' => 'store',
+                'permission' => 'inventory.goods-receipts.create',
+            ]);
+
+            Route::get('/edit/{goodsReceipt}', [
+                'uses' => GoodsReceiptController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'inventory.goods-receipts.edit',
+            ]);
+
+            Route::match(['POST', 'PUT'], '/edit/{goodsReceipt}', [
+                'uses' => GoodsReceiptController::class . '@update',
+                'as' => 'update',
+                'permission' => 'inventory.goods-receipts.edit',
+            ]);
+
+            Route::get('/{goodsReceipt}', [
+                'uses' => GoodsReceiptController::class . '@show',
+                'as' => 'show',
+                'permission' => 'inventory.goods-receipts.show',
+            ]);
+
+            Route::delete('/{goodsReceipt}', [
+                'uses' => GoodsReceiptController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'inventory.goods-receipts.delete',
             ]);
         });
     });

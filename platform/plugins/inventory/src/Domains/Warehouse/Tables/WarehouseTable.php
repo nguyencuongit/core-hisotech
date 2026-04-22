@@ -2,7 +2,6 @@
 
 namespace Botble\Inventory\Domains\Warehouse\Tables;
 
-use Botble\Base\Facades\BaseHelper;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Botble\Table\Abstracts\TableAbstract;
 use Botble\Table\Actions\DeleteAction;
@@ -32,8 +31,9 @@ class WarehouseTable extends TableAbstract
                 EditAction::make('show')
                 ->label('Xem')
                 ->icon('ti ti-map-2')
-                ->route('inventory.warehouse.show'),
-                EditAction::make()->route('inventory.warehouse.edit')->permission('warehouse.create'),
+                ->route('inventory.warehouse.show')
+                ->permission('warehouse.show'),
+                EditAction::make()->route('inventory.warehouse.edit')->permission('warehouse.edit'),
                 DeleteAction::make()->route('inventory.warehouse.destroy')->permission('warehouse.destroy'),
             ])
             ->addBulkActions([
