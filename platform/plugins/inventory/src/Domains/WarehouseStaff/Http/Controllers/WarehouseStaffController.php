@@ -45,10 +45,7 @@ class WarehouseStaffController extends BaseController
             $form = WarehouseStaffForm::create()->setRequest($request);
 
             $form->save();
-            $warehouseIds = [];
-            foreach($request->warehouse_id as $item){
-                $warehouseIds[] = $item[0];
-            }
+            $warehouseIds = collect($request->input('warehouse_id', []))->flatten()->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
             $assignmentsUsercase->updateWarehouseId($form->getModel()->getKey(),$warehouseIds,$request->position);
             return $this
                 ->httpResponse()
@@ -72,10 +69,7 @@ class WarehouseStaffController extends BaseController
                 ->setRequest($request)
                 ->save();
 
-            $warehouseIds = [];
-            foreach($request->warehouse_id as $item){
-                $warehouseIds[] = $item[0];
-            }
+            $warehouseIds = collect($request->input('warehouse_id', []))->flatten()->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
             $assignmentsUsercase->updateWarehouseId($form->getModel()->getKey(),$warehouseIds,$request->position);
 
             return $this

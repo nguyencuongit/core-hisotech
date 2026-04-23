@@ -24,6 +24,9 @@ class WarehouseStaffForm extends FormAbstract
 {
     public function setup(): void
     {
+        $model = $this->getModel();
+        $warehouseStaff = $model instanceof WarehouseStaff ? $model : null;
+
         $users = DB::table('users')
         ->select(DB::raw("id, CONCAT(first_name, ' ', last_name) as full_name"))
         ->pluck('full_name', 'id')
@@ -31,11 +34,8 @@ class WarehouseStaffForm extends FormAbstract
 
         $warehouser = Warehouse::query()->pluck('name', 'id')->toArray();
         $position = WarehousePosition::query()->pluck('name', 'id')->toArray();
-        $selectedWarehouses = $this->getModel()->getKey()
-            ? DB::table('inv_warehouse_staff_assignments')
-                ->where('staff_id', $this->getModel()->getKey())
-                ->pluck('warehouse_id')
-                ->all()
+        $selectedWarehouses = $warehouseStaff?->getKey()
+            ? $warehouseStaff->assignments()->pluck('warehouse_id')->all()
             : [];
         $this
             ->model(WarehouseStaff::class)
@@ -54,11 +54,7 @@ class WarehouseStaffForm extends FormAbstract
             ->add('warehouse_id[]', SelectField::class, SelectFieldOption::make()->required()
                 ->label('Kho')
                 ->choices($warehouser)
-                ->selected(
-                    $this->getModel()->getKey()
-                        ? $this->getModel()->assignments()->pluck('warehouse_id')->all()
-                        : []
-                )
+                ->selected($selectedWarehouses)
                 ->multiple()
                 ->searchable()
             )

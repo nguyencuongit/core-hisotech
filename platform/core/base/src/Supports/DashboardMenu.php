@@ -416,14 +416,19 @@ class DashboardMenu
 
     protected function applyActiveRecursive(array $item): array
     {
-        $currentUrl = $this->request->fullUrl();
+        $currentUrl = rtrim($this->request->fullUrl(), '/');
+        $currentPathUrl = rtrim($this->request->url(), '/');
         $adminPrefix = BaseHelper::getAdminPrefix();
-        $url = $item['url'];
+        $adminUrl = rtrim(url($adminPrefix), '/');
+        $url = rtrim($item['url'], '/');
+        $pathUrl = rtrim(Str::before($url, '?'), '/');
 
-        $item['active'] = $currentUrl === $item['url']
+        $item['active'] = $currentUrl === $url
+            || $currentPathUrl === $pathUrl
             || (
-                Str::contains($currentUrl, $url)
-                && $url !== url($adminPrefix)
+                $pathUrl !== ''
+                && $pathUrl !== $adminUrl
+                && Str::startsWith($currentPathUrl . '/', $pathUrl . '/')
             );
 
         if ($item['children']->isEmpty()) {

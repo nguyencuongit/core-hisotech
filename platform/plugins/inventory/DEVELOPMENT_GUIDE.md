@@ -1,30 +1,30 @@
-# Inventory Plugin Development Guide
+# Hướng Dẫn Phát Triển Plugin Inventory
 
-This guide is for developers and agents maintaining `platform/plugins/inventory`.
+Tài liệu này dành cho lập trình viên và AI agent đang bảo trì `platform/plugins/inventory`.
 
-## Architecture Principle
+## Nguyên Tắc Kiến Trúc
 
-Inventory is organized by domain. Put feature-specific code inside `src/Domains/<Domain>`. Keep root `src/` folders for shared plugin infrastructure only.
+Inventory được tổ chức theo domain. Hãy đặt code theo từng tính năng bên trong `src/Domains/<Domain>`. Chỉ giữ các thư mục gốc trong `src/` cho phần hạ tầng dùng chung của plugin.
 
-Current domains:
+Các domain hiện tại:
 
 - `WarehouseStaff`
 - `Warehouse`
 - `Supplier`
 - `GoodsReceipt`
 
-Root plugin code should stay small:
+Code gốc của plugin nên giữ gọn:
 
 - `src/Providers/InventoryServiceProvider.php`
 - `src/Http/Middleware/InventoryContextMiddleware.php`
-- shared helpers in `src/Helpers`
-- shared context/support code in `src/Support`
-- shared enums in `src/Enums`
-- legacy root inventory model/form/table/controller where still used
+- helper dùng chung trong `src/Helpers`
+- code context/support dùng chung trong `src/Support`
+- enum dùng chung trong `src/Enums`
+- model/form/table/controller inventory gốc kiểu legacy nếu vẫn còn được sử dụng
 
-## Provider Standard
+## Chuẩn Provider
 
-`InventoryServiceProvider` loads shared plugin resources and registers domain providers:
+`InventoryServiceProvider` chịu trách nhiệm tải tài nguyên dùng chung của plugin và đăng ký các domain provider:
 
 ```php
 use Botble\Inventory\Domains\GoodsReceipt\Providers\GoodsReceiptProvider;
@@ -38,19 +38,19 @@ $this->app->register(WarehouseStaffProvider::class);
 $this->app->register(WarehouseProvider::class);
 ```
 
-The root provider should own:
+Root provider nên phụ trách:
 
-- namespace/config/translation/route/view/migration loading
-- the root inventory parent menu
-- `InventoryContext` singleton
-- `inventory.context` middleware alias
-- domain provider registration
+- tải namespace/config/translation/route/view/migration
+- menu cha gốc của inventory
+- singleton `InventoryContext`
+- alias middleware `inventory.context`
+- đăng ký các domain provider
 
-Domain providers own domain-specific menu items, repository bindings, and domain boot logic.
+Domain provider phụ trách menu riêng của domain, binding repository, và logic boot riêng của domain.
 
-## Routes And Permissions
+## Routes Và Permissions
 
-Routes stay in `routes/web.php` inside the admin route group:
+Routes đặt trong `routes/web.php` bên trong admin route group:
 
 ```php
 Route::group([
@@ -62,21 +62,21 @@ Route::group([
 });
 ```
 
-Use domain controller imports, explicit route names, and explicit permission keys:
+Hãy dùng import controller theo domain, route name tường minh, và permission key tường minh:
 
 ```php
 use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffController;
 ```
 
-Keep route permissions, table action permissions, menu permissions, and `config/permissions.php` aligned. Do not mix prefixed and unprefixed flags inside one domain unless you migrate the whole domain.
+Giữ cho route permissions, table action permissions, menu permissions và `config/permissions.php` đồng bộ với nhau. Không trộn cờ permission có tiền tố và không có tiền tố trong cùng một domain, trừ khi bạn migrate toàn bộ domain đó.
 
-Put literal routes before parameter routes. Example: `products/search` must be defined before `/{supplier}`.
+Đặt route literal trước route tham số. Ví dụ: `products/search` phải được khai báo trước `/{supplier}`.
 
-## WarehouseStaff Domain Standard
+## Chuẩn Domain WarehouseStaff
 
-`WarehouseStaff` owns warehouse staff, warehouse positions, and staff-to-warehouse assignment behavior.
+`WarehouseStaff` quản lý nhân sự kho, chức danh trong kho, và logic phân công nhân sự vào kho.
 
-Important files:
+Các file quan trọng:
 
 ```txt
 src/Domains/WarehouseStaff/
@@ -98,25 +98,25 @@ src/Domains/WarehouseStaff/
   Usecase/AssignmentsUsercase.php
 ```
 
-Use the existing folder/class spelling when extending this domain. The current code uses `Usecase` and `AssignmentsUsercase`.
+Khi mở rộng domain này, hãy giữ nguyên cách đặt tên thư mục/lớp đang có. Code hiện tại dùng `Usecase` và `AssignmentsUsercase`.
 
-### WarehouseStaff Tables
+### Các Bảng WarehouseStaff
 
-Migrations currently create:
+Migration hiện tại tạo các bảng:
 
 - `inv_warehouse_positions`
 - `inv_warehouse_staff`
 - `inv_warehouse_staff_assignments`
 - `inv_user_warehouses`
 
-`inv_warehouse_positions` stores warehouse roles:
+`inv_warehouse_positions` lưu vai trò trong kho:
 
 - `code`
 - `name`
 - `level`
 - `is_active`
 
-`inv_warehouse_staff` stores staff profiles:
+`inv_warehouse_staff` lưu hồ sơ nhân sự kho:
 
 - `user_id`
 - `staff_code`
@@ -125,7 +125,7 @@ Migrations currently create:
 - `email`
 - `status`
 
-`inv_warehouse_staff_assignments` stores staff access to warehouses:
+`inv_warehouse_staff_assignments` lưu quyền truy cập kho của nhân sự:
 
 - `staff_id`
 - `warehouse_id`
@@ -136,123 +136,123 @@ Migrations currently create:
 - `end_date`
 - unique `staff_id + warehouse_id`
 
-`inv_user_warehouses` exists, but the current warehouse-scope middleware uses `inv_warehouse_staff_assignments`, not `inv_user_warehouses`.
+`inv_user_warehouses` có tồn tại, nhưng middleware scope kho hiện tại dùng `inv_warehouse_staff_assignments`, không dùng `inv_user_warehouses`.
 
-### WarehouseStaff Provider
+### Provider Của WarehouseStaff
 
-`WarehouseStaffProvider` should:
+`WarehouseStaffProvider` nên:
 
-- bind `WarehouseStaffAssignmentInterface` to `WarehouseStaffAssignmentRepository`
-- pass a `WarehouseStaffAssignments` model instance into that repository
-- register the Warehouse Staff admin menu item
-- register the Warehouse Positions admin menu item
+- bind `WarehouseStaffAssignmentInterface` tới `WarehouseStaffAssignmentRepository`
+- truyền model `WarehouseStaffAssignments` vào repository đó
+- đăng ký menu admin Warehouse Staff
+- đăng ký menu admin Warehouse Positions
 
-Keep these menus in `Domains/WarehouseStaff/Providers/WarehouseStaffProvider.php`. Do not move them back into `InventoryServiceProvider`.
+Giữ các menu này trong `Domains/WarehouseStaff/Providers/WarehouseStaffProvider.php`. Không chuyển ngược chúng về `InventoryServiceProvider`.
 
-### Staff Write Flow
+### Luồng Ghi Dữ Liệu Nhân Sự Kho
 
-`WarehouseStaffController` is the current write coordinator:
+`WarehouseStaffController` hiện là bộ điều phối luồng ghi dữ liệu:
 
-1. Create or update the staff model through `WarehouseStaffForm`.
-2. Normalize selected `warehouse_id[]` values from the request.
-3. Call `AssignmentsUsercase::updateWarehouseId()`.
-4. Wrap the staff save and assignment sync in `DB::transaction()`.
+1. Tạo hoặc cập nhật model staff thông qua `WarehouseStaffForm`.
+2. Chuẩn hóa danh sách `warehouse_id[]` được chọn từ request.
+3. Gọi `AssignmentsUsercase::updateWarehouseId()`.
+4. Bọc thao tác lưu staff và đồng bộ assignment trong `DB::transaction()`.
 
-`AssignmentsUsercase` owns assignment sync:
+`AssignmentsUsercase` phụ trách đồng bộ assignment:
 
-1. Delete assignments for warehouses no longer selected.
-2. `firstOrNew()` each `staff_id + warehouse_id`.
-3. Set `start_date` when the assignment is new.
-4. Set `position_id`.
-5. Save the assignment.
+1. Xóa các assignment của những kho không còn được chọn.
+2. `firstOrNew()` cho từng cặp `staff_id + warehouse_id`.
+3. Gán `start_date` khi assignment là mới.
+4. Gán `position_id`.
+5. Lưu assignment.
 
-Keep repository details out of controllers when adding assignment behavior.
+Khi thêm logic assignment, không đưa chi tiết repository vào controller.
 
-### Position Write Flow
+### Luồng Ghi Dữ Liệu Chức Danh
 
-`WarehousePositionController` uses the standard Botble form flow:
+`WarehousePositionController` dùng luồng form chuẩn của Botble:
 
-1. Validate with `WarehousePositionRequest`.
-2. Save through `WarehousePositionForm`.
-3. Return Botble HTTP response with previous/next URLs.
+1. Validate với `WarehousePositionRequest`.
+2. Lưu thông qua `WarehousePositionForm`.
+3. Trả về Botble HTTP response với previous/next URLs.
 
-Delete actions use `DeleteResourceAction`.
+Các thao tác xóa dùng `DeleteResourceAction`.
 
-### WarehouseStaff Forms
+### Form WarehouseStaff
 
-`WarehouseStaffForm` currently loads:
+`WarehouseStaffForm` hiện đang tải:
 
-- system users from `users`
-- warehouses from `Domains/Warehouse/Models/Warehouse`
-- positions from `WarehousePosition`
-- selected warehouses through `assignments()`
+- system users từ `users`
+- danh sách kho từ `Domains/Warehouse/Models/Warehouse`
+- danh sách chức danh từ `WarehousePosition`
+- các kho đã chọn thông qua `assignments()`
 
-The multiple warehouse select is named `warehouse_id[]`. Current controller code expects a nested array and extracts `$item[0]`. If you refactor this, normalize request input in one small helper and keep backward compatibility with the submitted form shape.
+Select nhiều kho được đặt tên là `warehouse_id[]`. Code controller hiện tại kỳ vọng dữ liệu dạng mảng lồng nhau và lấy `$item[0]`. Nếu refactor phần này, hãy chuẩn hóa request input trong một helper nhỏ và vẫn giữ backward compatibility với dạng dữ liệu form đang submit.
 
-Use translation keys or valid UTF-8 labels when editing labels. Do not preserve mojibake text.
+Khi sửa label, hãy dùng translation keys hoặc label UTF-8 hợp lệ. Không giữ lại text lỗi font/mojibake.
 
-### WarehouseStaff Validation
+### Validation Của WarehouseStaff
 
-`WarehouseStaffRequest` should validate:
+`WarehouseStaffRequest` nên validate:
 
-- `full_name` required string max 220
-- `phone` required string max 220
-- `email` required string max 220
-- `staff_code` unique in `inv_warehouse_staff`, ignoring the current route model on update
-- `warehouse_id` required array
+- `full_name` bắt buộc, kiểu string, max 220
+- `phone` bắt buộc, kiểu string, max 220
+- `email` bắt buộc, kiểu string, max 220
+- `staff_code` unique trong `inv_warehouse_staff`, bỏ qua route model hiện tại khi update
+- `warehouse_id` bắt buộc, kiểu array
 
-When improving validation, also verify:
+Khi cải thiện validation, hãy kiểm tra thêm:
 
-- every selected warehouse exists
-- selected `position` exists in `inv_warehouse_positions`
-- optional `user_id` exists in `users`
-- email has email format if the business wants real email validation
+- mọi kho được chọn đều tồn tại
+- `position` được chọn tồn tại trong `inv_warehouse_positions`
+- `user_id` tùy chọn phải tồn tại trong `users`
+- email có đúng format email nếu nghiệp vụ yêu cầu validate email thật
 
-`WarehousePositionRequest` should validate:
+`WarehousePositionRequest` nên validate:
 
-- `name` required string max 220
-- `code` unique in `inv_warehouse_positions`, ignoring the current route model on update
-- `level` integer between 0 and 100
+- `name` bắt buộc, kiểu string, max 220
+- `code` unique trong `inv_warehouse_positions`, bỏ qua route model hiện tại khi update
+- `level` là số nguyên trong khoảng từ 0 đến 100
 
-### Warehouse Scope Context
+### Context Theo Phạm Vi Kho
 
-Inventory admin routes use `inventory.context`.
+Các route admin của inventory dùng `inventory.context`.
 
 `InventoryContextMiddleware`:
 
-1. Resets context warehouse IDs and super-admin flag.
-2. Marks users with `super_user === 1` as super admin.
-3. Finds the current user's `WarehouseStaff` record by `user_id`.
-4. Loads assigned warehouse IDs from `WarehouseStaffAssignments`.
-5. Stores those IDs in `InventoryContext`.
+1. Reset danh sách warehouse IDs trong context và cờ super-admin.
+2. Đánh dấu người dùng có `super_user === 1` là super admin.
+3. Tìm bản ghi `WarehouseStaff` của người dùng hiện tại theo `user_id`.
+4. Tải danh sách warehouse IDs được phân công từ `WarehouseStaffAssignments`.
+5. Lưu các IDs đó vào `InventoryContext`.
 
-Shared helpers:
+Các helper dùng chung:
 
 - `inventory_context()`
 - `inventory_warehouse_ids()`
 - `inventory_is_super_admin()`
 
-Use those helpers for warehouse-scoped admin queries. For example, `WarehouseStaffTable` scopes non-super-admin users by `assignments.warehouse_id`.
+Hãy dùng các helper này cho các truy vấn admin có phạm vi theo kho. Ví dụ, `WarehouseStaffTable` giới hạn người dùng không phải super admin theo `assignments.warehouse_id`.
 
-### WarehouseStaff Tables
+### Bảng Hiển Thị WarehouseStaff
 
-`WarehouseStaffTable` should:
+`WarehouseStaffTable` nên:
 
-- use `WarehouseStaff::class`
+- dùng `WarehouseStaff::class`
 - eager-load `assignments.warehouse`
-- show assigned warehouse names through a non-orderable, non-searchable formatted column
-- scope non-super-admin users by `inventory_warehouse_ids()`
-- use route names under `inventory.warehouse-staff.*`
+- hiển thị tên các kho được phân công thông qua formatted column không orderable, không searchable
+- giới hạn người dùng không phải super admin theo `inventory_warehouse_ids()`
+- dùng route names theo `inventory.warehouse-staff.*`
 
-`WarehousePositionTable` should:
+`WarehousePositionTable` nên:
 
-- use `WarehousePosition::class`
-- show active/inactive status consistently
-- use route names under `inventory.warehouse-positions.*`
+- dùng `WarehousePosition::class`
+- hiển thị trạng thái active/inactive nhất quán
+- dùng route names theo `inventory.warehouse-positions.*`
 
-### WarehouseStaff Routes And Permission Flags
+### Routes Và Cờ Permission Chuẩn Của WarehouseStaff
 
-Canonical route names:
+Route names chuẩn:
 
 - `inventory.warehouse-staff.index`
 - `inventory.warehouse-staff.create`
@@ -267,7 +267,7 @@ Canonical route names:
 - `inventory.warehouse-positions.update`
 - `inventory.warehouse-positions.destroy`
 
-Canonical permission flags for this domain:
+Cờ permission chuẩn cho domain này:
 
 - `warehouse-staff.index`
 - `warehouse-staff.create`
@@ -278,32 +278,32 @@ Canonical permission flags for this domain:
 - `warehouse-positions.edit`
 - `warehouse-positions.destroy`
 
-When touching this domain, align all of these places:
+Khi chỉnh sửa domain này, hãy đồng bộ tất cả các nơi sau:
 
-- route `permission` keys
-- table header/action/bulk permissions
-- provider menu permissions
+- key `permission` trong route
+- permission của table header/action/bulk
+- permission trong menu provider
 - `config/permissions.php`
 
-Avoid mismatches such as:
+Tránh các trường hợp lệch nhau như:
 
-- `warehouse-positions.delete` in routes while tables/config use `warehouse-positions.destroy`
-- `inventory.warehouse-staff.destroy` in a table bulk action while the domain uses `warehouse-staff.destroy`
-- missing `warehouse-positions.*` entries in `config/permissions.php`
+- `warehouse-positions.delete` trong routes trong khi table/config dùng `warehouse-positions.destroy`
+- `inventory.warehouse-staff.destroy` trong bulk action của table trong khi domain dùng `warehouse-staff.destroy`
+- thiếu các mục `warehouse-positions.*` trong `config/permissions.php`
 
-### WarehouseStaff Cleanup Rules
+### Quy Tắc Dọn Dẹp WarehouseStaff
 
-WarehouseStaff repositories belong in `Domains/WarehouseStaff/Repositories`.
+Repository của WarehouseStaff phải nằm trong `Domains/WarehouseStaff/Repositories`.
 
-If a file under `Domains/Warehouse` declares a `Botble\Inventory\Domains\WarehouseStaff` namespace, it is not a WarehouseStaff standard file. Treat it as cleanup work in a dedicated task and avoid copying from it.
+Nếu một file trong `Domains/Warehouse` lại khai báo namespace `Botble\Inventory\Domains\WarehouseStaff`, thì đó không phải file chuẩn của WarehouseStaff. Hãy xem đó là việc cleanup trong một task riêng, và tránh copy từ đó.
 
-Do not rely on `WarehouseStaff::warehouse()` for multi-warehouse access. The real relation is `assignments()` and each assignment belongs to a warehouse.
+Không dựa vào `WarehouseStaff::warehouse()` cho truy cập đa kho. Quan hệ đúng là `assignments()` và mỗi assignment thuộc về một warehouse.
 
-## Warehouse Domain
+## Domain Warehouse
 
-Warehouse-owned code belongs under `src/Domains/Warehouse`.
+Code thuộc Warehouse phải nằm trong `src/Domains/Warehouse`.
 
-Important current files include:
+Một số file hiện tại quan trọng:
 
 - `Models/Warehouse.php`
 - `Models/WarehouseLocation.php`
@@ -315,17 +315,17 @@ Important current files include:
 - `Tables/WarehouseTable.php`
 - `Providers/WarehouseProvider.php`
 
-`WarehouseProvider` registers the warehouse menu and binds `WarehouseInterface` to `WarehouseRepository`.
+`WarehouseProvider` đăng ký menu warehouse và bind `WarehouseInterface` tới `WarehouseRepository`.
 
-Warehouse list queries should use `inventory_warehouse_ids()` for non-super-admin users when the screen is warehouse-scoped.
+Các truy vấn danh sách kho nên dùng `inventory_warehouse_ids()` cho người dùng không phải super admin khi màn hình có phạm vi theo kho.
 
-## Warehouse Product Configuration
+## Cấu Hình Sản Phẩm Theo Kho
 
-Warehouse product configuration belongs in the Warehouse domain.
+Cấu hình sản phẩm theo kho thuộc domain Warehouse.
 
-The required bridge table is `inv_warehouse_products`. It answers: which products or variations are allowed to be managed in which warehouse.
+Bảng bridge bắt buộc là `inv_warehouse_products`. Bảng này trả lời câu hỏi: sản phẩm hoặc biến thể nào được phép quản lý trong kho nào.
 
-Important files:
+Các file quan trọng:
 
 - `Models/WarehouseProduct.php`
 - `Http/Controllers/WarehouseProductController.php`
@@ -333,25 +333,25 @@ Important files:
 - `Services/WarehouseProductService.php`
 - `resources/views/warehouse/show.blade.php`
 
-Validation rules:
+Các quy tắc validation:
 
-- route warehouse must exist
-- product must exist
-- variation must belong to the selected product when provided
-- default location must belong to the route warehouse
-- supplier product must match supplier and product
-- duplicate warehouse/product/variation combinations are blocked in service because MySQL unique indexes allow repeated nullable values
+- warehouse trên route phải tồn tại
+- product phải tồn tại
+- variation phải thuộc product đã chọn nếu có truyền vào
+- default location phải thuộc warehouse trên route
+- supplier product phải khớp với supplier và product
+- tổ hợp warehouse/product/variation trùng nhau phải bị chặn trong service vì MySQL unique index vẫn cho phép lặp lại giá trị nullable
 
-Removal rule:
+Quy tắc xóa:
 
-- if there is no goods receipt, stock transaction, or stock balance history, the row can be deleted
-- if history exists, update `is_active` to false instead of deleting so reports remain stable
+- nếu chưa có lịch sử goods receipt, stock transaction hoặc stock balance thì có thể xóa dòng đó
+- nếu đã có lịch sử thì cập nhật `is_active = false` thay vì xóa để báo cáo không bị sai lệch
 
-Goods receipt product search must only return active products configured in `inv_warehouse_products` for the selected warehouse.
+Tìm kiếm sản phẩm trong goods receipt chỉ được trả về các sản phẩm đang active và đã được cấu hình trong `inv_warehouse_products` cho warehouse đã chọn.
 
-## Supplier Domain
+## Domain Supplier
 
-Supplier code belongs here:
+Code của Supplier nằm tại:
 
 ```txt
 src/Domains/Supplier/
@@ -369,7 +369,7 @@ src/Domains/Supplier/
   Tables/SupplierTable.php
 ```
 
-Do not add old root Supplier files back under:
+Không thêm lại các file Supplier kiểu root cũ vào:
 
 ```txt
 src/Forms/SupplierForm.php
@@ -381,88 +381,88 @@ src/Tables/SupplierTable.php
 src/Repositories/*Supplier*
 ```
 
-`SupplierService` owns multi-table supplier writes and approval actions. Use `DB::transaction()` when syncing contacts, addresses, banks, and supplied products.
+`SupplierService` phụ trách các thao tác ghi nhiều bảng của supplier và các thao tác approval. Hãy dùng `DB::transaction()` khi đồng bộ contacts, addresses, banks và supplied products.
 
-Supplier table should show operational fields:
+Bảng danh sách supplier nên hiển thị các thông tin vận hành:
 
-- supplier code
-- supplier name
-- supplier type
-- tax code
-- primary contact
-- supplied product count
-- status badge
-- created date
+- mã nhà cung cấp
+- tên nhà cung cấp
+- loại nhà cung cấp
+- mã số thuế
+- liên hệ chính
+- số lượng sản phẩm cung ứng
+- badge trạng thái
+- ngày tạo
 
-Use eager loading and `withCount()` for supplier list data. Computed columns should be non-orderable and non-searchable.
+Hãy dùng eager loading và `withCount()` cho dữ liệu danh sách supplier. Các cột tính toán phải không orderable và không searchable.
 
-## GoodsReceipt Domain
+## Domain GoodsReceipt
 
-Goods receipt code belongs under `src/Domains/GoodsReceipt`.
+Code của goods receipt nằm trong `src/Domains/GoodsReceipt`.
 
-The domain owns:
+Domain này quản lý:
 
-- `GoodsReceipt` header model for `inv_goods_receipts`
-- `GoodsReceiptItem` line model for `inv_goods_receipt_items`
-- batch and stock models for receipt/stock schema
-- `GoodsReceiptService` for transactional create/update
-- product search and supplier product suggestion endpoints
+- model header `GoodsReceipt` cho `inv_goods_receipts`
+- model dòng `GoodsReceiptItem` cho `inv_goods_receipt_items`
+- các model batch và stock cho schema receipt/stock
+- `GoodsReceiptService` cho create/update có transaction
+- endpoint tìm kiếm sản phẩm và gợi ý supplier product
 - `GoodsReceiptTable`
 - `GoodsReceiptProvider`
 
-Create/update must remain transactional because one receipt header has many item rows. The service computes subtotal, discount, tax, and total from line rows.
+Các thao tác create/update phải giữ transaction vì một receipt header có nhiều item lines. Service sẽ tính subtotal, discount, tax và total từ các dòng dữ liệu.
 
-Supplier product suggestions should read from `inv_supplier_products` and prefill product, supplier price, MOQ, and lead time note.
+Gợi ý supplier product nên đọc từ `inv_supplier_products` và tự điền product, supplier price, MOQ và ghi chú lead time.
 
-Do not silently post inventory movements when a receipt is marked `completed` unless a task defines posting rules. Posting should update `inv_stock_transactions`, `inv_stock_balances`, and possibly `ec_products.quantity` together.
+Không tự động ghi inventory movement khi một receipt được đánh dấu `completed`, trừ khi có task định nghĩa rõ quy tắc posting. Khi posting, phải cập nhật `inv_stock_transactions`, `inv_stock_balances`, và có thể cả `ec_products.quantity` cùng lúc.
 
 ## Migrations
 
-Inventory migrations live under `platform/plugins/inventory/database/migrations`.
+Các migration của Inventory nằm trong `platform/plugins/inventory/database/migrations`.
 
-Before debugging runtime errors, check migration status:
+Trước khi debug lỗi runtime, hãy kiểm tra trạng thái migration:
 
 ```powershell
 php artisan migrate:status --path=platform/plugins/inventory/database/migrations
 ```
 
-For schema changes:
+Khi thay đổi schema:
 
-- create additive migrations instead of editing already-run migrations
-- keep table names prefixed with `inv_`
-- add indexes for foreign keys and search-heavy columns
-- add foreign keys only when the referenced table exists in the same installation path
-- preserve UUID vs bigint ID types from existing tables
+- tạo migration cộng thêm thay vì sửa migration đã chạy
+- giữ tên bảng có tiền tố `inv_`
+- thêm index cho foreign keys và các cột tìm kiếm nhiều
+- chỉ thêm foreign key khi bảng được tham chiếu tồn tại trong cùng đường cài đặt
+- giữ đúng kiểu ID UUID hay bigint theo bảng hiện có
 
-## UI And Language
+## Giao Diện Và Ngôn Ngữ
 
-Use Botble Form/Table conventions already present in the domain.
+Hãy dùng các quy ước Form/Table của Botble đang có sẵn trong domain.
 
-For admin labels:
+Đối với label ở admin:
 
-- prefer translation keys in `resources/lang/en/inventory.php` and `resources/lang/vi/inventory.php`
-- keep language files valid UTF-8
-- avoid hard-coded mojibake labels
-- use `FormattedColumn` for computed table values and badges
+- ưu tiên translation keys trong `resources/lang/en/inventory.php` và `resources/lang/vi/inventory.php`
+- giữ file ngôn ngữ ở dạng UTF-8 hợp lệ
+- tránh label hard-coded bị lỗi font/mojibake
+- dùng `FormattedColumn` cho giá trị tính toán và badge trong bảng
 
-For warehouse/product screens, follow `Design.md` when changing layout or views.
+Với các màn hình warehouse/product, hãy làm theo `Design.md` khi thay đổi layout hoặc view.
 
 ## Cleanup
 
-`backup.php` in the plugin root is not runtime code. It can contain diff-style backup content and fail PHP lint. Do not include it in automated source lint.
+`backup.php` trong thư mục gốc của plugin không phải code runtime. Nó có thể chứa nội dung backup kiểu diff và làm lỗi PHP lint. Không đưa file này vào quy trình lint source tự động.
 
-When moving a feature into `Domains/<Domain>`:
+Khi chuyển một tính năng vào `Domains/<Domain>`:
 
-- update namespaces
-- update routes
-- update provider imports and registrations
-- update permissions
-- remove old root copies only when they are confirmed obsolete
-- keep unrelated dirty worktree changes untouched
+- cập nhật namespace
+- cập nhật routes
+- cập nhật import và đăng ký provider
+- cập nhật permissions
+- chỉ xóa các bản copy root cũ khi xác nhận chúng đã lỗi thời
+- giữ nguyên các thay đổi worktree bẩn nhưng không liên quan
 
-## Verification Commands
+## Các Lệnh Kiểm Tra
 
-Run touched-file lint:
+Chạy lint cho các file đã chỉnh:
 
 ```powershell
 php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Providers/WarehouseStaffProvider.php
@@ -471,43 +471,43 @@ php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Usecase/Assignments
 php -l platform/plugins/inventory/src/Providers/InventoryServiceProvider.php
 ```
 
-Run full plugin source lint:
+Chạy lint toàn bộ source của plugin:
 
 ```powershell
 Get-ChildItem -Path 'platform/plugins/inventory/src' -Recurse -Filter '*.php' | ForEach-Object { php -l $_.FullName }
 ```
 
-Check WarehouseStaff routes:
+Kiểm tra routes của WarehouseStaff:
 
 ```powershell
 php artisan route:list --name=inventory.warehouse-staff
 php artisan route:list --name=inventory.warehouse-positions
 ```
 
-Check Supplier or GoodsReceipt routes when touched:
+Khi có chỉnh sửa, kiểm tra routes của Supplier hoặc GoodsReceipt:
 
 ```powershell
 php artisan route:list --name=inventory.suppliers
 php artisan route:list --name=inventory.goods-receipts
 ```
 
-Check Laravel boot/autoload for a class:
+Kiểm tra Laravel boot/autoload cho một class:
 
 ```powershell
 php -r "require 'vendor/autoload.php'; `$app = require 'bootstrap/app.php'; `$kernel = `$app->make('Illuminate\\Contracts\\Console\\Kernel'); `$kernel->bootstrap(); echo class_exists('Botble\\Inventory\\Domains\\WarehouseStaff\\Providers\\WarehouseStaffProvider') ? 'ok' : 'missing';"
 ```
 
-## Review Checklist
+## Checklist Review
 
-Before finishing an Inventory plugin change:
+Trước khi hoàn thành một thay đổi trong plugin Inventory:
 
-- Feature code is inside the right domain folder.
-- Routes point to domain controllers.
-- Domain provider is registered from `InventoryServiceProvider`.
-- Domain menu and repository bindings live in the domain provider.
-- Permissions match route keys, table actions, menus, and `config/permissions.php`.
-- Warehouse-scoped screens use `inventory.context` and helpers where needed.
-- Multi-table writes are transactional.
-- Table computed columns are not accidentally SQL-searchable/orderable.
-- Admin labels are valid UTF-8 or translation keys.
-- PHP lint and route checks pass for touched areas.
+- Code tính năng nằm đúng trong thư mục domain phù hợp.
+- Routes trỏ đúng tới domain controllers.
+- Domain provider được đăng ký từ `InventoryServiceProvider`.
+- Menu và repository bindings của domain nằm trong domain provider.
+- Permissions khớp với route keys, table actions, menus và `config/permissions.php`.
+- Các màn hình có phạm vi theo kho dùng `inventory.context` và các helper khi cần.
+- Các thao tác ghi nhiều bảng có dùng transaction.
+- Các cột tính toán trong bảng không vô tình bị cho phép SQL search/order.
+- Label admin là UTF-8 hợp lệ hoặc dùng translation keys.
+- PHP lint và route checks đều pass ở các phần đã chỉnh.

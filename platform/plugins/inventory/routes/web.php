@@ -107,6 +107,18 @@ AdminHelper::registerRoutes(function () {
                 'as' => 'index',
                 'permission' => 'warehouse.index',
             ]);
+
+            Route::post('/assign', [
+                'uses' => WarehouseProductCatalogController::class . '@assign',
+                'as' => 'assign',
+                'permission' => 'warehouse.products.manage',
+            ]);
+
+            Route::post('/toggle', [
+                'uses' => WarehouseProductCatalogController::class . '@toggle',
+                'as' => 'toggle',
+                'permission' => 'warehouse.products.manage',
+            ]);
         });
 
         Route::group([
