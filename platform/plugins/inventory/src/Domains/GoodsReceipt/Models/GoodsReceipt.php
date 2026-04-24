@@ -65,6 +65,11 @@ class GoodsReceipt extends BaseModel
         return $this->hasMany(GoodsReceiptItem::class, 'goods_receipt_id');
     }
 
+    public function storageItems(): HasMany
+    {
+        return $this->hasMany(ReceiptStorageItem::class, 'goods_receipt_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -86,13 +86,11 @@ class WarehouseProductService
     {
         $productId = (int) Arr::get($data, 'product_id');
         $productVariationId = Arr::get($data, 'product_variation_id') ? (int) Arr::get($data, 'product_variation_id') : null;
-        $defaultLocationId = Arr::get($data, 'default_location_id') ? (int) Arr::get($data, 'default_location_id') : null;
         $supplierId = Arr::get($data, 'supplier_id') ?: null;
         $supplierProductId = Arr::get($data, 'supplier_product_id') ?: null;
 
         $this->ensureProductExists($productId);
         $this->ensureVariationBelongsToProduct($productId, $productVariationId);
-        $this->ensureLocationBelongsToWarehouse($warehouse, $defaultLocationId);
 
         $supplierProduct = $this->resolveSupplierProduct($supplierProductId);
 
@@ -111,7 +109,6 @@ class WarehouseProductService
         return [
             'product_id' => $productId,
             'product_variation_id' => $productVariationId,
-            'default_location_id' => $defaultLocationId,
             'supplier_id' => $supplierId,
             'supplier_product_id' => $supplierProduct?->getKey(),
             'is_active' => (bool) Arr::get($data, 'is_active', true),
@@ -140,22 +137,6 @@ class WarehouseProductService
 
         if ((int) $variation->product_id !== $productId && (int) $variation->configurable_product_id !== $productId) {
             $this->throwValidation('product_variation_id', trans('plugins/inventory::inventory.warehouse_product.validation.variation_product_mismatch'));
-        }
-    }
-
-    protected function ensureLocationBelongsToWarehouse(Warehouse $warehouse, ?int $defaultLocationId): void
-    {
-        if (! $defaultLocationId) {
-            return;
-        }
-
-        $locationExists = WarehouseLocation::query()
-            ->whereKey($defaultLocationId)
-            ->where('warehouse_id', $warehouse->getKey())
-            ->exists();
-
-        if (! $locationExists) {
-            $this->throwValidation('default_location_id', trans('plugins/inventory::inventory.warehouse_product.validation.location_warehouse_mismatch'));
         }
     }
 

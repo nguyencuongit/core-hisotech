@@ -7,13 +7,21 @@ use Botble\Base\Http\Controllers\BaseController;
 use Botble\Ecommerce\Models\Product;
 use Botble\Inventory\Domains\GoodsReceipt\Http\Requests\GoodsReceiptRequest;
 use Botble\Inventory\Domains\GoodsReceipt\Models\GoodsReceipt;
+use Botble\Inventory\Domains\GoodsReceipt\Models\ReceiptStorageItem;
 use Botble\Inventory\Domains\GoodsReceipt\Services\GoodsReceiptService;
+use Botble\Inventory\Domains\GoodsReceipt\Services\ReceiptStorageItemService;
 use Botble\Inventory\Domains\GoodsReceipt\Tables\GoodsReceiptTable;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Warehouse\Models\Pallet;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
+use Botble\Inventory\Domains\Warehouse\Models\WarehouseLocation;
 use Botble\Inventory\Domains\Warehouse\Models\WarehouseProduct;
+use Botble\Inventory\Domains\Warehouse\Services\StockLedgerService;
+use Botble\Inventory\Domains\Warehouse\Services\WarehouseSettingService;
+use Botble\Inventory\Domains\Warehouse\Support\PalletLocationRules;
 use Botble\Inventory\Enums\GoodsReceiptStatusEnum;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class GoodsReceiptController extends BaseController
 {
@@ -55,11 +63,47 @@ class GoodsReceiptController extends BaseController
     {
         abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.show'), 403);
 
-        $goodsReceipt->load(['supplier', 'warehouse', 'items.product', 'items.productVariation', 'creator', 'approver']);
+        $goodsReceipt->load([
+            'supplier',
+            'warehouse.setting',
+            'items.product',
+            'items.productVariation',
+            'items.batches',
+            'creator',
+            'approver',
+            'storageItems.goodsReceiptItem',
+            'storageItems.goodsReceiptBatch',
+            'storageItems.product',
+            'storageItems.warehouseLocation',
+            'storageItems.pallet.currentLocation',
+            'storageItems.poster',
+        ]);
+
+        $warehouseSetting = $goodsReceipt->warehouse->setting
+            ?: app(WarehouseSettingService::class)->firstOrCreateDefault($goodsReceipt->warehouse);
+
+        $storageLocations = WarehouseLocation::query()
+            ->where('warehouse_id', $goodsReceipt->warehouse_id)
+            ->whereIn('type', PalletLocationRules::allowedTypes())
+            ->orderBy('path')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'path', 'type']);
+
+        $pallets = Pallet::query()
+            ->where('warehouse_id', $goodsReceipt->warehouse_id)
+            ->with('currentLocation')
+            ->orderBy('code')
+            ->get(['id', 'code', 'warehouse_id', 'current_location_id', 'status']);
 
         $this->pageTitle($goodsReceipt->code);
 
-        return view('plugins/inventory::goods-receipts.show', compact('goodsReceipt'));
+        return view('plugins/inventory::goods-receipts.show', [
+            'goodsReceipt' => $goodsReceipt,
+            'allowedStorageLocationTypes' => PalletLocationRules::allowedTypes(),
+            'storageLocations' => $storageLocations,
+            'pallets' => $pallets,
+            'warehouseSetting' => $warehouseSetting,
+        ]);
     }
 
     public function edit(GoodsReceipt $goodsReceipt)
@@ -93,6 +137,93 @@ class GoodsReceiptController extends BaseController
         abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.delete'), 403);
 
         return DeleteResourceAction::make($goodsReceipt);
+    }
+
+    public function generateStorageItems(GoodsReceipt $goodsReceipt, ReceiptStorageItemService $service)
+    {
+        abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.edit'), 403);
+
+        $items = $service->generateFromReceipt($goodsReceipt->loadMissing(['items.batches', 'warehouse.setting']));
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Đã đồng bộ storage items từ phiếu nhập.',
+                'count' => $items->count(),
+            ]);
+        }
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.goods-receipts.show', $goodsReceipt))
+            ->setMessage('Đã đồng bộ storage items từ phiếu nhập.');
+    }
+
+    public function updateStorageItem(GoodsReceipt $goodsReceipt, ReceiptStorageItem $storageItem, ReceiptStorageItemService $service)
+    {
+        abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.edit'), 403);
+
+        if ((string) $storageItem->goods_receipt_id !== (string) $goodsReceipt->getKey()) {
+            abort(404);
+        }
+
+        $data = request()->validate([
+            'warehouse_location_id' => ['nullable', 'integer', 'exists:inv_warehouse_locations,id'],
+            'pallet_id' => ['nullable', 'integer', 'exists:inv_pallets,id'],
+            'status' => ['required', 'in:receiving,qc_hold,pending_putaway,stored,damaged,rejected,closed'],
+            'note' => ['nullable', 'string'],
+            'meta_json' => ['nullable', 'array'],
+        ]);
+
+        $storageItem = $service->updateStorageLocation($storageItem, $data);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Cập nhật storage item thành công.',
+                'data' => $storageItem,
+            ]);
+        }
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.goods-receipts.show', $goodsReceipt))
+            ->setMessage('Cập nhật storage item thành công.');
+    }
+
+    public function postStorageItem(GoodsReceipt $goodsReceipt, ReceiptStorageItem $storageItem, StockLedgerService $service)
+    {
+        abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.edit'), 403);
+
+        if ((string) $storageItem->goods_receipt_id !== (string) $goodsReceipt->getKey()) {
+            abort(404);
+        }
+
+        $service->postReceiptStorageItem($storageItem);
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.goods-receipts.show', $goodsReceipt))
+            ->setMessage('Đã ghi tồn kho cho storage item.');
+    }
+
+    public function postAllStorageItems(GoodsReceipt $goodsReceipt, StockLedgerService $service)
+    {
+        abort_unless(auth()->user()?->hasPermission('inventory.goods-receipts.edit'), 403);
+
+        $eligibleItems = $goodsReceipt->storageItems()
+            ->whereNull('posted_at')
+            ->whereIn('status', ['stored', 'qc_hold', 'damaged', 'rejected'])
+            ->get();
+
+        DB::transaction(function () use ($eligibleItems, $service): void {
+            foreach ($eligibleItems as $storageItem) {
+                $service->postReceiptStorageItem($storageItem);
+            }
+        });
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.goods-receipts.show', $goodsReceipt))
+            ->setMessage(sprintf('Đã ghi tồn kho cho %d storage item.', $eligibleItems->count()));
     }
 
     public function searchProducts(): JsonResponse

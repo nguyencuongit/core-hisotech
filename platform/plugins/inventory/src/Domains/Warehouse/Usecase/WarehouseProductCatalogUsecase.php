@@ -227,7 +227,7 @@ class WarehouseProductCatalogUsecase
         }
 
         $warehouseProducts = WarehouseProduct::query()
-            ->with(['warehouse', 'productVariation', 'defaultLocation', 'supplier'])
+            ->with(['warehouse', 'productVariation', 'supplier'])
             ->whereIn('product_id', $productIds)
             ->where('is_active', true)
             ->when(! $isSuperAdmin, fn (Builder $query) => $query->whereIn('warehouse_id', $allowedWarehouseIds))

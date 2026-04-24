@@ -14,7 +14,6 @@ class WarehouseProductRequest extends Request
         return [
             'product_id' => [$isUpdate ? 'nullable' : 'required', 'integer', 'exists:ec_products,id'],
             'product_variation_id' => ['nullable', 'integer', 'exists:ec_product_variations,id'],
-            'default_location_id' => ['nullable', 'integer', 'exists:inv_warehouse_locations,id'],
             'supplier_id' => ['nullable', 'uuid', 'exists:inv_suppliers,id'],
             'supplier_product_id' => ['nullable', 'uuid', 'exists:inv_supplier_products,id'],
             'is_active' => ['nullable', Rule::in(['0', '1', 0, 1, true, false])],

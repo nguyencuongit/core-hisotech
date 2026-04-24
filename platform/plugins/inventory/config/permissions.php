@@ -128,4 +128,29 @@ return [
         'flag' => 'warehouse.destroy',
         'parent_flag' => 'warehouse.index',
     ],
+    [
+        'name' => 'Warehouse locations',
+        'flag' => 'warehouse.locations.manage',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Warehouse maps',
+        'flag' => 'warehouse.maps.manage',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Warehouse maps',
+        'flag' => 'warehouse.maps.manage',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Warehouse product policies',
+        'flag' => 'warehouse.product-policies.manage',
+        'parent_flag' => 'warehouse.index',
+    ],
+    [
+        'name' => 'Pallets',
+        'flag' => 'warehouse.pallets.manage',
+        'parent_flag' => 'warehouse.index',
+    ],
 ];
