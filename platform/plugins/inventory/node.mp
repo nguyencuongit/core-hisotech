@@ -60,26 +60,45 @@ inv_warehouse_locations
 
 
 inv_export
+
 inv_export_items
-inv_import
+inv_import  (type : purchase(đối tác mua) , transfer(chuyển kho), return(trả hàng) , manual(khác))  (partner_type:supplier, warehouse , customer )
+    id type warehouse_id warehouse_code warehouse_name partner_type partner_id partner_code partner_name
+    partner_phone partner_email partner_address province_id ward_id 
+    doc_code(tự sinh ra.) reference_code (mã tham chiếu), posting_date( ngày hạch toán), document_date( ngày chứng từ) , received_at ngày nhập kho , receiver_name
+    receiver_phone status['draft','confirmed','completed','cancelled'] note , created_by( người tạo phiếu) , approved_by (người duyệt phiếu), deleted_at.
 inv_import_items
+    id import_id product_id product_name product_code document_qty(trên phiếu) , received_qty(thực), note, delete_at, unit_id, unit_name,warehouse_location_id, amount
+
 
 inv_packing_lists (danh sách đóng gói)
-inv_packing_list_items 
+inv_packing_list_items
+
+
 inv_setting
+
+
 inv_internal_transfers
 inv_internal_transfers_item
+
+
 inv_returns (trả hàng)
 inv_return_items
+
+
 inv_stock_movements (lịch sử)
+
+
 inv_stock_adjustments (lưu phiếu khi thực tế khác với trên dữ liệu (mất hàng, vỡ hàng , thừa hàng phải điều chỉnh ....))
 inv_stock_adjustment_items
+
 
 inv_stocks (tồn hiện tại)
 inv_stock_movements (tại sao tồn kho đó) 
     #1: before 20 | +50 | after 70
     #2: before 70 | -10 | after 60
     #3: before 60 | +5  | after 65
+
 
 có thể có 
 inv_product_categories (nhóm hàng hoá)
@@ -115,18 +134,18 @@ platform/plugins/inventory/src/
     │
     ├── Warehouse/
     │   
-    ├── Import/
+    ├── Import/  
     │  
     ├── Export/
     │   
-    ├── Transfer/
+    ├── Transfer/ chuyển qua các kho
     │  
-    ├── Stock/
+    ├── Stock/ lịch sử di chuyển
     │  
     ├── Packing/
-    ├── Adjustment/
-    ├── Report/
-    └── Setting/
+    ├── Adjustment/ 
+    ├── Report/ quay lai
+    └── Setting/ 
 
     chú ý lúc làm phân quyền. là làm 1 middleware để định kho + tạo 1 warehouseContext dùng cho toàn request 
     để lưu 

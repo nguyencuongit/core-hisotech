@@ -8,10 +8,13 @@ use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Inventory\Models\Inventory;
 use Botble\Inventory\Support\InventoryContext;
 use Botble\Inventory\Http\Middleware\InventoryContextMiddleware;
+
 use Botble\Inventory\Domains\GoodsReceipt\Providers\GoodsReceiptProvider;
 use Botble\Inventory\Domains\Supplier\Providers\SupplierProvider;
 use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
 use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
+use Botble\Inventory\Domains\Transactions\Providers\TransactionProvider;
+
 use Illuminate\Routing\Router;
 
 class InventoryServiceProvider extends ServiceProvider
@@ -85,6 +88,7 @@ class InventoryServiceProvider extends ServiceProvider
         $this->app->register(GoodsReceiptProvider::class);
         $this->app->register(WarehouseStaffProvider::class);
         $this->app->register(WarehouseProvider::class);
+        $this->app->register(TransactionProvider::class);
 
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('inventory.context', InventoryContextMiddleware::class);
