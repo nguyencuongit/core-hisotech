@@ -9,5 +9,4 @@ interface WarehouseStaffAssignmentInterface extends RepositoryInterface
     public function findByStaff(int $id);
     public function removeUnassignedWarehousesByStaff(int $staffId, array $warehouseIds);
     public function findByStaffIdWarehouseId( int $staffId, int $warehouseId);
-    public function findByWarehouseIdStaff(int $warehouse);
 }

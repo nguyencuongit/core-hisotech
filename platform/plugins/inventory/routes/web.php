@@ -14,6 +14,9 @@ use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseSettingControll
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseTemplateController;
 use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehousePositionController;
 use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffController;
+use Botble\Inventory\Domains\Transactions\Http\Controllers\ExportController;
+use Botble\Inventory\Domains\Transactions\Http\Controllers\ImportController;
+use Botble\Inventory\Domains\Transactions\Http\Controllers\TransactionAjaxController;
 use Botble\Inventory\Http\Controllers\InventoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -102,5 +105,98 @@ AdminHelper::registerRoutes(function () {
             Route::get('/{goodsReceipt}', ['uses' => GoodsReceiptController::class . '@show', 'as' => 'show', 'permission' => 'inventory.goods-receipts.show']);
             Route::delete('/{goodsReceipt}', ['uses' => GoodsReceiptController::class . '@destroy', 'as' => 'destroy', 'permission' => 'inventory.goods-receipts.delete']);
         });
+
+        // transaction import
+        Route::group([
+            'prefix' => 'transactions-import',
+            'as' => 'transactions-import.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => ImportController::class . '@index',
+                'as' => 'index',
+                'permission' => 'transactions-import.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => ImportController::class . '@create',
+                'as' => 'create',
+                'permission' => 'transactions-import.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => ImportController::class . '@store',
+                'as' => 'store',
+                'permission' => 'transactions-import.create',
+            ]);
+
+            Route::get('/edit/{import}', [
+                'uses' => ImportController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'transactions-import.edit',
+            ]);
+
+            Route::post('/edit/{import}', [
+                'uses' => ImportController::class . '@update',
+                'as' => 'update',
+                'permission' => 'transactions-import.edit',
+            ]);
+
+            Route::delete('/{import}', [
+                'uses' => ImportController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'transactions-import.destroy',
+            ]);
+        });
+        // transaction export
+        Route::group([
+            'prefix' => 'transactions-export',
+            'as' => 'transactions-export.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => ExportController::class . '@index',
+                'as' => 'index',
+                'permission' => 'transactions-export.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => ExportController::class . '@create',
+                'as' => 'create',
+                'permission' => 'transactions-export.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => ExportController::class . '@store',
+                'as' => 'store',
+                'permission' => 'transactions-export.create',
+            ]);
+
+            Route::get('/edit/{export}', [
+                'uses' => ExportController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'transactions-export.edit',
+            ]);
+
+            Route::post('/edit/{export}', [
+                'uses' => ExportController::class . '@update',
+                'as' => 'update',
+                'permission' => 'transactions-export.edit',
+            ]);
+
+            Route::delete('/{export}', [
+                'uses' => ExportController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'transactions-export.destroy',
+            ]);
+        });
     });
 });
+
+Route::get('ajax/warehouses/{warehouse}/staff', [
+    'uses' => TransactionAjaxController::class . '@getStaffByWarehouse',
+    'as' => 'ajax.warehouses.staff',
+]);
+
+Route::get('ajax/partner-type/{type}', [
+    'uses' => TransactionAjaxController::class . '@getMenber',
+    'as' => 'ajax.partner-type',
+]);

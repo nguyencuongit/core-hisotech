@@ -222,4 +222,13 @@ return [
         ],
     ],
 
+    'transactions' => [
+        'export'=>[
+            'name' => 'Export',
+        ],
+        'import'=>[
+            'name' => 'Import',
+        ],
+    ],
+
 ];
