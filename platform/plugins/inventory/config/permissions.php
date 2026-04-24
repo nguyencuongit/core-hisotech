@@ -128,4 +128,63 @@ return [
         'flag' => 'warehouse.destroy',
         'parent_flag' => 'warehouse.index',
     ],
+
+    // import
+    [
+        'name' => 'import',
+        'flag' => 'transactions-import.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'transactions-import.create',
+        'parent_flag' => 'transactions-import.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'transactions-import.edit',
+        'parent_flag' => 'transactions-import.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'transactions-import.show',
+        'parent_flag' => 'transactions-import.index',
+    ],
+    [
+        'name' => 'Manage products',
+        'flag' => 'transactions-import.products.manage',
+        'parent_flag' => 'transactions-import.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'transactions-import.destroy',
+        'parent_flag' => 'transactions-import.index',
+    ],
+
+    // export
+    [
+        'name' => 'export',
+        'flag' => 'transactions-export.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'transactions-export.create',
+        'parent_flag' => 'transactions-export.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'transactions-export.edit',
+        'parent_flag' => 'transactions-export.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'transactions-export.show',
+        'parent_flag' => 'transactions-export.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'transactions-export.destroy',
+        'parent_flag' => 'transactions-export.index',
+    ],
 ];
