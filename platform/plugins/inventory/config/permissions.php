@@ -211,4 +211,112 @@ return [
         'flag' => 'transactions-export.destroy',
         'parent_flag' => 'transactions-export.index',
     ],
+
+
+    // packing
+    [
+        'name' => 'packing',
+        'flag' => 'packing.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'packing.create',
+        'parent_flag' => 'packing.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'packing.edit',
+        'parent_flag' => 'packing.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'packing.show',
+        'parent_flag' => 'packing.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'packing.destroy',
+        'parent_flag' => 'packing.index',
+    ],
+
+    // transfer
+    [
+        'name' => 'transfer',
+        'flag' => 'transfer.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'transfer.create',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'transfer.edit',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'transfer.show',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'transfer.destroy',
+        'parent_flag' => 'transfer.index',
+    ],
+
+    // report
+    [
+        'name' => 'report',
+        'flag' => 'report.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'report.create',
+        'parent_flag' => 'report.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'report.edit',
+        'parent_flag' => 'report.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'report.show',
+        'parent_flag' => 'report.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'report.destroy',
+        'parent_flag' => 'report.index',
+    ],
+    // return
+    [
+        'name' => 'return',
+        'flag' => 'return.index',
+        'parent_flag' => 'inventory',
+    ],
+    [
+        'name' => 'Create',
+        'flag' => 'return.create',
+        'parent_flag' => 'return.index',
+    ],
+    [
+        'name' => 'Edit',
+        'flag' => 'return.edit',
+        'parent_flag' => 'return.index',
+    ],
+    [
+        'name' => 'Show',
+        'flag' => 'return.show',
+        'parent_flag' => 'return.index',
+    ],
+    [
+        'name' => 'Delete',
+        'flag' => 'return.destroy',
+        'parent_flag' => 'return.index',
+    ],
 ];
