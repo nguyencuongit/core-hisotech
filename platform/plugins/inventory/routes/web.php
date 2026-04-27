@@ -52,7 +52,7 @@ AdminHelper::registerRoutes(function () {
             Route::match(['GET', 'POST'], '/', ['uses' => WarehouseController::class . '@index', 'as' => 'index', 'permission' => 'warehouse.index']);
             Route::get('/create', ['uses' => WarehouseController::class . '@create', 'as' => 'create', 'permission' => 'warehouse.create']);
             Route::get('/templates', ['uses' => WarehouseTemplateController::class . '@index', 'as' => 'templates.index', 'permission' => 'warehouse.locations.manage']);
-            Route::post('/templates/apply', ['uses' => WarehouseTemplateController::class . '@apply', 'as' => 'templates.apply', 'permission' => 'warehouse.locations.manage']);
+            Route::post('/{warehouse}/templates/apply', ['uses' => WarehouseTemplateController::class . '@apply', 'as' => 'templates.apply', 'permission' => 'warehouse.locations.manage']);
             Route::post('/create', ['uses' => WarehouseController::class . '@store', 'as' => 'store', 'permission' => 'warehouse.create']);
             Route::get('/edit/{warehouse}', ['uses' => WarehouseController::class . '@edit', 'as' => 'edit', 'permission' => 'warehouse.edit']);
             Route::match(['POST', 'PUT'], '/edit/{warehouse}', ['uses' => WarehouseController::class . '@update', 'as' => 'update', 'permission' => 'warehouse.edit']);

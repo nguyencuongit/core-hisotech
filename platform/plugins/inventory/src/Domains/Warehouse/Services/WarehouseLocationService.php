@@ -148,8 +148,8 @@ class WarehouseLocationService
             return true;
         }
 
-        return DB::table('inv_stock_transactions')->where('location_id', $location->getKey())->exists()
-            || DB::table('inv_stock_balances')->where('location_id', $location->getKey())->exists();
+        return DB::table('inv_stock_transactions')->where('warehouse_location_id', $location->getKey())->exists()
+            || DB::table('inv_stock_balances')->where('warehouse_location_id', $location->getKey())->exists();
     }
 
     protected function ensureBelongsToWarehouse(Warehouse $warehouse, WarehouseLocation $location): void

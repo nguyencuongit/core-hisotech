@@ -15,6 +15,7 @@ use Botble\Inventory\Domains\Warehouse\Models\WarehouseSetting;
 use Botble\Inventory\Domains\Warehouse\Services\PalletService;
 use Botble\Inventory\Domains\Warehouse\Services\WarehouseProductPolicyService;
 use Botble\Inventory\Domains\Warehouse\Services\WarehouseSettingService;
+use Botble\Inventory\Domains\Warehouse\Support\WarehouseShowViewData;
 use Botble\Inventory\Domains\Warehouse\Tables\WarehouseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -127,14 +128,11 @@ class WarehouseController extends BaseController
             ->latest()
             ->get();
 
-        $mapItemByLocation = $warehouse->maps
-            ->flatMap(fn ($map) => $map->items)
-            ->filter(fn ($item) => ! empty($item->location_id))
-            ->keyBy('location_id');
+        $viewData = WarehouseShowViewData::make($warehouse, $locations)->toArray();
 
         $this->pageTitle($warehouse->name);
 
-        return view('plugins/inventory::warehouse.show', compact('warehouse', 'locations', 'suppliers', 'mapItemByLocation', 'settings', 'pallets'));
+        return view('plugins/inventory::warehouse.show', array_merge(compact('warehouse', 'locations', 'suppliers', 'settings'), $viewData));
     }
 
     public function updateSettings(Warehouse $warehouse, Request $request, WarehouseSettingService $service)

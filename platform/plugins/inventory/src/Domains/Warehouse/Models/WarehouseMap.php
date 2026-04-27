@@ -14,6 +14,7 @@ class WarehouseMap extends BaseModel
         'warehouse_id',
         'name',
         'map_type',
+        'storage_mode',
         'background_image',
         'width',
         'height',

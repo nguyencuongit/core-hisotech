@@ -10,8 +10,10 @@ class PalletLocationRules
         'qc_hold',
         'damaged',
         'rejected',
+        'level',
         'bin',
         'pallet_area',
+        'pallet_slot',
         'staging_area',
         'dispatch',
     ];

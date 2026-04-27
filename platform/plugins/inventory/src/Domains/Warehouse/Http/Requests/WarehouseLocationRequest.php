@@ -18,6 +18,8 @@ class WarehouseLocationRequest extends Request
             'rack',
             'level',
             'bin',
+            'pallet_area',
+            'pallet_slot',
             'receiving',
             'waiting_putaway',
             'qc_hold',

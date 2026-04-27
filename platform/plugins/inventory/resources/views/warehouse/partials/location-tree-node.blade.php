@@ -7,7 +7,24 @@
     ];
     $isSelected = (int) ($selectedLocation?->getKey() ?? 0) === (int) $location->getKey();
     $mapItem = $mapItemByLocation->get($location->getKey());
-    $nodeStyle = '--tree-level: ' . $level . '; --tree-accent: ' . ($meta['accent'] ?? '#64748b') . ';';
+    $treeDepth = max(0, (int) $level);
+    $nodeStyle = '--tree-level: ' . $treeDepth . '; --tree-accent: ' . ($meta['accent'] ?? '#64748b') . ';';
+    $moduleType = $mapItem?->item_type ?: $location->type;
+    $mapMeta = $mapItem?->meta_json ?? [];
+    $widthCount = max(1, (int) data_get($mapMeta, 'width_count', data_get($mapMeta, 'positions_per_level', data_get($mapMeta, 'bin_count_per_level', data_get($mapMeta, 'column_count', 4)))));
+    $heightCount = max(1, (int) data_get($mapMeta, 'height_count', data_get($mapMeta, 'level_count', 4)));
+    $lengthCount = max(1, (int) data_get($mapMeta, 'length_count', data_get($mapMeta, 'rack_count', data_get($mapMeta, 'row_count', 1))));
+    $isStandardRack = in_array($moduleType, ['pallet_rack', 'simple_shelf', 'rack'], true)
+        && $widthCount === 4
+        && $heightCount === 4
+        && $lengthCount === 10;
+    $isRackNode = in_array($location->type, ['rack', 'level', 'bin'], true) || in_array($moduleType, ['pallet_rack', 'simple_shelf', 'rack'], true);
+    $storageModeLabel = in_array($moduleType, ['pallet_rack', 'pallet_slot', 'floor_pallet_area'], true)
+        ? 'Pallet'
+        : ($isRackNode ? 'Direct' : null);
+    $treeLabel = $isRackNode ? 'Kệ' : $meta['label'];
+    $capacity = $widthCount * $heightCount * $lengthCount * max(1, (int) data_get($mapMeta, 'pallets_per_position', 1));
+    $capacityLabel = $mapItem ? number_format($capacity) . ' vị trí' : null;
     $locationPayload = e(json_encode([
         'id' => $location->getKey(),
         'parent_id' => $location->parent_id,
@@ -36,17 +53,23 @@
         <div>
             <div class="warehouse-tree-title-row">
                 <strong>{{ $location->displayLabel() }}</strong>
-                <span class="badge {{ $meta['badge'] }}">{{ $meta['label'] }}</span>
+                <span class="badge {{ $meta['badge'] }}">{{ $treeLabel }}</span>
                 <span class="badge {{ $location->status ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary' }}">
                     {{ $location->status ? 'Đang hoạt động' : 'Tạm tắt' }}
                 </span>
+                @if($storageModeLabel)
+                    <span class="badge {{ str_contains($storageModeLabel, 'pallet') ? 'bg-success-lt text-success' : 'bg-primary-lt text-primary' }}">{{ $storageModeLabel }}</span>
+                @endif
                 @if($mapItem)
-                    <span class="badge bg-info-lt text-info">Đã gắn lên sơ đồ</span>
+                    <span class="badge {{ $isStandardRack ? 'bg-success-lt text-success' : 'bg-info-lt text-info' }}">{{ $widthCount }}×{{ $heightCount }}×{{ $lengthCount }} · {{ $capacity }}</span>
                 @endif
             </div>
             <div class="warehouse-tree-meta">
                 <span>Path: {{ $location->path }}</span>
                 <span>Cấp: {{ $location->level }}</span>
+                @if($mapItem)
+                    <span>{{ $moduleType }}</span>
+                @endif
             </div>
         </div>
     </div>
@@ -58,7 +81,7 @@
         @endif
         <a
             class="btn btn-sm btn-outline-secondary"
-            href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'location_id' => $location->getKey(), 'map_id' => request('map_id')]) }}"
+            href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'maps', 'location_id' => $location->getKey(), 'map_id' => request('map_id')]) }}"
         >
             Xem
         </a>
