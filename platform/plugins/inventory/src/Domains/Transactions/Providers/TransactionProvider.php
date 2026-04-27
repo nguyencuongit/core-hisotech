@@ -28,7 +28,7 @@ class TransactionProvider extends ServiceProvider
                     'priority' => 7,
                     'parent_id' => 'cms-plugins-inventory',
                     'name' => 'plugins/inventory::inventory.transactions.import.name',
-                    'icon' => 'ti ti-user-cog',
+                    'icon' => 'ti ti-download',
                     'url' => route('inventory.transactions-import.index'),
                     'permissions' => ['transactions-import.index'],
                 ]);
@@ -37,7 +37,7 @@ class TransactionProvider extends ServiceProvider
                     'priority' => 8,
                     'parent_id' => 'cms-plugins-inventory',
                     'name' => 'plugins/inventory::inventory.transactions.export.name',
-                    'icon' => 'ti ti-briefcase',
+                    'icon' => 'ti ti-upload',
                     'url' => route('inventory.transactions-export.index'),
                     'permissions' => ['transactions-export.index'],
                 ]);

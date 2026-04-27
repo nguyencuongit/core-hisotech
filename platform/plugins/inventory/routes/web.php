@@ -17,6 +17,12 @@ use Botble\Inventory\Domains\WarehouseStaff\Http\Controllers\WarehouseStaffContr
 use Botble\Inventory\Domains\Transactions\Http\Controllers\ExportController;
 use Botble\Inventory\Domains\Transactions\Http\Controllers\ImportController;
 use Botble\Inventory\Domains\Transactions\Http\Controllers\TransactionAjaxController;
+use Botble\Inventory\Domains\Packing\Http\Controllers\PackingController;
+use Botble\Inventory\Domains\Transfer\Http\Controllers\TransferController;
+use Botble\Inventory\Domains\Return\Http\Controllers\ReturnController;
+
+
+
 use Botble\Inventory\Http\Controllers\InventoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -186,6 +192,174 @@ AdminHelper::registerRoutes(function () {
                 'uses' => ExportController::class . '@destroy',
                 'as' => 'destroy',
                 'permission' => 'transactions-export.destroy',
+            ]);
+        });
+
+        // packing
+        Route::group([
+            'prefix' => 'packing',
+            'as' => 'packing.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => PackingController::class . '@index',
+                'as' => 'index',
+                'permission' => 'packing.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => PackingController::class . '@create',
+                'as' => 'create',
+                'permission' => 'packing.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => PackingController::class . '@store',
+                'as' => 'store',
+                'permission' => 'packing.create',
+            ]);
+
+            Route::get('/edit/{packing}', [
+                'uses' => PackingController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'packing.edit',
+            ]);
+
+            Route::post('/edit/{packing}', [
+                'uses' => PackingController::class . '@update',
+                'as' => 'update',
+                'permission' => 'packing.edit',
+            ]);
+
+            Route::delete('/{packing}', [
+                'uses' => PackingController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'packing.destroy',
+            ]);
+        });
+
+        // transfer
+        Route::group([
+            'prefix' => 'transfer',
+            'as' => 'transfer.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => TransferController::class . '@index',
+                'as' => 'index',
+                'permission' => 'transfer.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => TransferController::class . '@create',
+                'as' => 'create',
+                'permission' => 'transfer.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => TransferController::class . '@store',
+                'as' => 'store',
+                'permission' => 'transfer.create',
+            ]);
+
+            Route::get('/edit/{transfer}', [
+                'uses' => TransferController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'transfer.edit',
+            ]);
+
+            Route::post('/edit/{transfer}', [
+                'uses' => TransferController::class . '@update',
+                'as' => 'update',
+                'permission' => 'transfer.edit',
+            ]);
+
+            Route::delete('/{transfer}', [
+                'uses' => TransferController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'transfer.destroy',
+            ]);
+        });
+
+        // report
+        Route::group([
+            'prefix' => 'report',
+            'as' => 'report.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => PackingController::class . '@index',
+                'as' => 'index',
+                'permission' => 'report.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => PackingController::class . '@create',
+                'as' => 'create',
+                'permission' => 'report.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => PackingController::class . '@store',
+                'as' => 'store',
+                'permission' => 'report.create',
+            ]);
+
+            Route::get('/edit/{report}', [
+                'uses' => PackingController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'report.edit',
+            ]);
+
+            Route::post('/edit/{report}', [
+                'uses' => PackingController::class . '@update',
+                'as' => 'update',
+                'permission' => 'report.edit',
+            ]);
+
+            Route::delete('/{report}', [
+                'uses' => PackingController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'report.destroy',
+            ]);
+        });
+
+        // return
+        Route::group([
+            'prefix' => 'return',
+            'as' => 'return.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => ReturnController::class . '@index',
+                'as' => 'index',
+                'permission' => 'return.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => ReturnController::class . '@create',
+                'as' => 'create',
+                'permission' => 'return.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => ReturnController::class . '@store',
+                'as' => 'store',
+                'permission' => 'return.create',
+            ]);
+
+            Route::get('/edit/{return}', [
+                'uses' => ReturnController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'return.edit',
+            ]);
+
+            Route::post('/edit/{return}', [
+                'uses' => ReturnController::class . '@update',
+                'as' => 'update',
+                'permission' => 'return.edit',
+            ]);
+
+            Route::delete('/{return}', [
+                'uses' => ReturnController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'return.destroy',
             ]);
         });
     });

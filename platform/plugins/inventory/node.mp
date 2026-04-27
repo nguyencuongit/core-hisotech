@@ -73,6 +73,11 @@ inv_import_items
 
 inv_packing_lists (danh sách đóng gói)
 inv_packing_list_items
+inv_packages  
+
+
+inv_returns (trả hàng)
+inv_return_items
 
 
 inv_setting
@@ -82,8 +87,9 @@ inv_internal_transfers
 inv_internal_transfers_item
 
 
-inv_returns (trả hàng)
-inv_return_items
+
+
+
 
 
 inv_stock_movements (lịch sử)
@@ -120,7 +126,7 @@ platform/plugins/inventory/src/
 ├── Repositories/
 ├── Supports/
 └── Domains/
-    ├── ncc/
+    ├── ncc/ (xong)
     ├── Product/
     │   ├── Models/
     │   ├── Services/
@@ -134,18 +140,20 @@ platform/plugins/inventory/src/
     │
     ├── Warehouse/
     │   
-    ├── Import/  
+    ├── Import/  (80/100) chưa test crud
     │  
-    ├── Export/
+    ├── Export/ (80/100) chưa test crud
     │   
-    ├── Transfer/ chuyển qua các kho
+    ├── Transfer/ chuyển qua các kho     (0/100)
     │  
-    ├── Stock/ lịch sử di chuyển
+    ├── Stock/Stock history (lịch sử di chuyển)   (làm cuối cùng)
     │  
-    ├── Packing/
-    ├── Adjustment/ 
-    ├── Report/ quay lai
-    └── Setting/ 
+    ├── Packing/ () (50/100) chưa test crud
+    ├── Adjustment/  (điều chỉnh tồn) (0/100)
+    ├── Report/ báo cáo kho (0/100)
+    ├── return/ báo cáo kho (0/100)
+    └── Setting/  (0/100) (bổ xung gần cuối)
+    └──document history (lịch sử tạo phiếu, ai duyệt, trạng thái thay đổi,...) (làm cuối cùng)
 
     chú ý lúc làm phân quyền. là làm 1 middleware để định kho + tạo 1 warehouseContext dùng cho toàn request 
     để lưu 

@@ -231,4 +231,16 @@ return [
         ],
     ],
 
+    'packing' => [
+        'name' => 'Packing',
+    ],
+    'transfer' => [
+        'name' => 'Transfer',
+    ],
+    'report' => [
+        'name' => 'Report',
+    ],
+    'return' => [
+        'name' => 'Return',
+    ],
 ];
