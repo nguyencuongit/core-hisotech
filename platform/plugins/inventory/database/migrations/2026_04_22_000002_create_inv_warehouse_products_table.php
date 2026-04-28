@@ -32,31 +32,6 @@ return new class extends Migration
                 $table->index('product_variation_id', 'inv_wh_prod_product_variation_id_index');
                 $table->index('supplier_id', 'inv_wh_prod_supplier_id_index');
                 $table->index('supplier_product_id', 'inv_wh_prod_supplier_product_id_index');
-
-                $table->foreign('warehouse_id', 'fk_inv_wh_prod_warehouse')
-                    ->references('id')
-                    ->on('inv_warehouses')
-                    ->cascadeOnDelete();
-
-                $table->foreign('product_id', 'fk_inv_wh_prod_product')
-                    ->references('id')
-                    ->on('ec_products')
-                    ->cascadeOnDelete();
-
-                $table->foreign('product_variation_id', 'fk_inv_wh_prod_variation')
-                    ->references('id')
-                    ->on('ec_product_variations')
-                    ->nullOnDelete();
-
-                $table->foreign('supplier_id', 'fk_inv_wh_prod_supplier')
-                    ->references('id')
-                    ->on('inv_suppliers')
-                    ->nullOnDelete();
-
-                $table->foreign('supplier_product_id', 'fk_inv_wh_prod_supplier_product')
-                    ->references('id')
-                    ->on('inv_supplier_products')
-                    ->nullOnDelete();
             });
         }
     }

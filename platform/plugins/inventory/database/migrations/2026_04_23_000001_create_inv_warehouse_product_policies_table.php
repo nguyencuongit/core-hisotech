@@ -26,10 +26,6 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->unique('warehouse_product_id', 'inv_wh_prod_policies_unique');
-                $table->foreign('warehouse_product_id', 'fk_inv_wh_prod_policy_wh_prod')
-                    ->references('id')
-                    ->on('inv_warehouse_products')
-                    ->cascadeOnDelete();
             });
         }
     }

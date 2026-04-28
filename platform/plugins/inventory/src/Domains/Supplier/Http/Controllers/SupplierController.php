@@ -5,6 +5,9 @@ namespace Botble\Inventory\Domains\Supplier\Http\Controllers;
 use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Ecommerce\Models\Product;
+use Botble\Inventory\Domains\Supplier\Actions\CreateSupplierAction;
+use Botble\Inventory\Domains\Supplier\Actions\UpdateSupplierAction;
+use Botble\Inventory\Domains\Supplier\DTO\SupplierDTO;
 use Botble\Inventory\Domains\Supplier\Http\Requests\SupplierRequest;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
 use Botble\Inventory\Domains\Supplier\Services\SupplierService;
@@ -36,13 +39,11 @@ class SupplierController extends BaseController
         return view('plugins/inventory::suppliers.create');
     }
 
-    public function store(SupplierRequest $request, SupplierService $service)
+    public function store(SupplierRequest $request, CreateSupplierAction $action)
     {
         abort_unless(auth()->user()?->hasPermission('inventory.suppliers.create'), 403);
 
-        $supplier = $service->create(array_merge($request->validated(), [
-            'status' => $request->input('action') === 'submit' ? SupplierStatusEnum::PENDING_APPROVAL->value : $request->input('status', SupplierStatusEnum::DRAFT->value),
-        ]));
+        $supplier = $action->execute(SupplierDTO::fromRequest($request));
 
         return $this
             ->httpResponse()
@@ -84,11 +85,11 @@ class SupplierController extends BaseController
         return view('plugins/inventory::suppliers.edit', compact('supplier'));
     }
 
-    public function update(Supplier $supplier, SupplierRequest $request, SupplierService $service)
+    public function update(Supplier $supplier, SupplierRequest $request, UpdateSupplierAction $action)
     {
         abort_unless(auth()->user()?->hasPermission('inventory.suppliers.edit'), 403);
 
-        $service->update($supplier, $request->validated());
+        $action->execute($supplier, SupplierDTO::fromRequest($request));
 
         return $this
             ->httpResponse()

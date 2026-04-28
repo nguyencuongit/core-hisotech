@@ -26,26 +26,6 @@ return new class extends Migration
                 $table->index('warehouse_id', 'inv_pallet_movements_warehouse_id_index');
                 $table->index('from_location_id', 'inv_pallet_movements_from_location_id_index');
                 $table->index('to_location_id', 'inv_pallet_movements_to_location_id_index');
-
-                $table->foreign('pallet_id', 'fk_inv_pallet_movements_pallet')
-                    ->references('id')
-                    ->on('inv_pallets')
-                    ->cascadeOnDelete();
-
-                $table->foreign('warehouse_id', 'fk_inv_pallet_movements_warehouse')
-                    ->references('id')
-                    ->on('inv_warehouses')
-                    ->cascadeOnDelete();
-
-                $table->foreign('from_location_id', 'fk_inv_pallet_movements_from_location')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-
-                $table->foreign('to_location_id', 'fk_inv_pallet_movements_to_location')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
             });
         }
     }

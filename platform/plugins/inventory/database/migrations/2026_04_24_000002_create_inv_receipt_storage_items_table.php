@@ -32,49 +32,24 @@ return new class extends Migration
                 $table->timestamp('stored_at')->nullable();
                 $table->timestamp('closed_at')->nullable();
                 $table->timestamp('posted_at')->nullable();
-                $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->unsignedBigInteger('posted_by')->nullable();
                 $table->text('note')->nullable();
                 $table->json('meta_json')->nullable();
-                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->unsignedBigInteger('created_by')->nullable();
                 $table->timestamps();
 
                 $table->index(['warehouse_id', 'status'], 'inv_rsi_wh_status_idx');
                 $table->index(['goods_receipt_id', 'goods_receipt_item_id'], 'inv_rsi_receipt_item_idx');
                 $table->index(['warehouse_id', 'warehouse_location_id'], 'inv_rsi_wh_location_idx');
+                $table->index('goods_receipt_item_id', 'inv_rsi_item_id_idx');
+                $table->index('goods_receipt_batch_id', 'inv_rsi_batch_id_idx');
+                $table->index('warehouse_location_id', 'inv_rsi_location_id_idx');
+                $table->index('pallet_id', 'inv_rsi_pallet_id_idx');
+                $table->index('product_id', 'inv_rsi_product_id_idx');
+                $table->index('product_variation_id', 'inv_rsi_variation_id_idx');
                 $table->index('posted_at', 'inv_rsi_posted_at_idx');
-
-                $table->foreign('goods_receipt_id', 'fk_inv_rsi_receipt')
-                    ->references('id')
-                    ->on('inv_goods_receipts')
-                    ->cascadeOnDelete();
-                $table->foreign('goods_receipt_item_id', 'fk_inv_rsi_item')
-                    ->references('id')
-                    ->on('inv_goods_receipt_items')
-                    ->cascadeOnDelete();
-                $table->foreign('goods_receipt_batch_id', 'fk_inv_rsi_batch')
-                    ->references('id')
-                    ->on('inv_goods_receipt_batches')
-                    ->nullOnDelete();
-                $table->foreign('warehouse_id', 'fk_inv_rsi_warehouse')
-                    ->references('id')
-                    ->on('inv_warehouses')
-                    ->cascadeOnDelete();
-                $table->foreign('warehouse_location_id', 'fk_inv_rsi_location')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-                $table->foreign('pallet_id', 'fk_inv_rsi_pallet')
-                    ->references('id')
-                    ->on('inv_pallets')
-                    ->nullOnDelete();
-                $table->foreign('product_id', 'fk_inv_rsi_product')
-                    ->references('id')
-                    ->on('ec_products')
-                    ->cascadeOnDelete();
-                $table->foreign('product_variation_id', 'fk_inv_rsi_variation')
-                    ->references('id')
-                    ->on('ec_product_variations')
-                    ->nullOnDelete();
+                $table->index('posted_by', 'inv_rsi_posted_by_idx');
+                $table->index('created_by', 'inv_rsi_created_by_idx');
             });
 
             return;
@@ -86,7 +61,7 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('inv_receipt_storage_items', 'posted_by')) {
-                $table->foreignId('posted_by')->nullable()->after('posted_at')->constrained('users')->nullOnDelete();
+                $table->unsignedBigInteger('posted_by')->nullable()->after('posted_at');
             }
         });
 
@@ -107,66 +82,42 @@ return new class extends Migration
             }
 
             try {
-                $table->foreign('goods_receipt_id', 'fk_inv_rsi_receipt')
-                    ->references('id')
-                    ->on('inv_goods_receipts')
-                    ->cascadeOnDelete();
+                $table->index('goods_receipt_item_id', 'inv_rsi_item_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('goods_receipt_item_id', 'fk_inv_rsi_item')
-                    ->references('id')
-                    ->on('inv_goods_receipt_items')
-                    ->cascadeOnDelete();
+                $table->index('goods_receipt_batch_id', 'inv_rsi_batch_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('goods_receipt_batch_id', 'fk_inv_rsi_batch')
-                    ->references('id')
-                    ->on('inv_goods_receipt_batches')
-                    ->nullOnDelete();
+                $table->index('warehouse_location_id', 'inv_rsi_location_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('warehouse_id', 'fk_inv_rsi_warehouse')
-                    ->references('id')
-                    ->on('inv_warehouses')
-                    ->cascadeOnDelete();
+                $table->index('pallet_id', 'inv_rsi_pallet_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('warehouse_location_id', 'fk_inv_rsi_location')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
+                $table->index('product_id', 'inv_rsi_product_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('pallet_id', 'fk_inv_rsi_pallet')
-                    ->references('id')
-                    ->on('inv_pallets')
-                    ->nullOnDelete();
+                $table->index('product_variation_id', 'inv_rsi_variation_id_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('product_id', 'fk_inv_rsi_product')
-                    ->references('id')
-                    ->on('ec_products')
-                    ->cascadeOnDelete();
+                $table->index('posted_by', 'inv_rsi_posted_by_idx');
             } catch (\Throwable) {
             }
 
             try {
-                $table->foreign('product_variation_id', 'fk_inv_rsi_variation')
-                    ->references('id')
-                    ->on('ec_product_variations')
-                    ->nullOnDelete();
+                $table->index('created_by', 'inv_rsi_created_by_idx');
             } catch (\Throwable) {
             }
         });
@@ -180,7 +131,7 @@ return new class extends Migration
 
         Schema::table('inv_receipt_storage_items', function (Blueprint $table): void {
             if (Schema::hasColumn('inv_receipt_storage_items', 'posted_by')) {
-                $table->dropConstrainedForeignId('posted_by');
+                $table->dropColumn('posted_by');
             }
 
             if (Schema::hasColumn('inv_receipt_storage_items', 'posted_at')) {

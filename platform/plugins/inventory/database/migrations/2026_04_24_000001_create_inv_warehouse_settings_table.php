@@ -26,35 +26,11 @@ return new class extends Migration
                 $table->unsignedBigInteger('default_rejected_location_id')->nullable();
                 $table->timestamps();
 
-                $table->foreign('warehouse_id', 'fk_inv_wh_settings_warehouse')
-                    ->references('id')
-                    ->on('inv_warehouses')
-                    ->cascadeOnDelete();
-
-                $table->foreign('default_receiving_location_id', 'fk_inv_wh_settings_recv_loc')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-
-                $table->foreign('default_waiting_putaway_location_id', 'fk_inv_wh_settings_wait_loc')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-
-                $table->foreign('default_qc_location_id', 'fk_inv_wh_settings_qc_loc')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-
-                $table->foreign('default_damaged_location_id', 'fk_inv_wh_settings_dmg_loc')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
-
-                $table->foreign('default_rejected_location_id', 'fk_inv_wh_settings_rjt_loc')
-                    ->references('id')
-                    ->on('inv_warehouse_locations')
-                    ->nullOnDelete();
+                $table->index('default_receiving_location_id', 'inv_wh_settings_recv_loc_idx');
+                $table->index('default_waiting_putaway_location_id', 'inv_wh_settings_wait_loc_idx');
+                $table->index('default_qc_location_id', 'inv_wh_settings_qc_loc_idx');
+                $table->index('default_damaged_location_id', 'inv_wh_settings_dmg_loc_idx');
+                $table->index('default_rejected_location_id', 'inv_wh_settings_rjt_loc_idx');
             });
         }
     }

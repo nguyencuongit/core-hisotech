@@ -148,10 +148,10 @@ platform/plugins/inventory/src/
     │  
     ├── Stock/Stock history (lịch sử di chuyển)   (làm cuối cùng)
     │  
-    ├── Packing/ () (50/100) chưa test crud
+    ├── Packing/ () (50/100) chưa test crud1 ( lấy phiếu của export đã đc xác nhận để lấy sản phẩm )
     ├── Adjustment/  (điều chỉnh tồn) (0/100)
-    ├── Report/ báo cáo kho (0/100)
-    ├── return/ báo cáo kho (0/100)
+    ├── Report/ báo cáo kho (0/100)1
+    ├── return/ báo cáo kho (0/100)1    ( 2 trường hợp ( khách trả hàng tìm đơn export để tạo thành đơn ( lấy sản phẩm), kho trả nhà sản xuất ( import ) ) )
     └── Setting/  (0/100) (bổ xung gần cuối)
     └──document history (lịch sử tạo phiếu, ai duyệt, trạng thái thay đổi,...) (làm cuối cùng)
 

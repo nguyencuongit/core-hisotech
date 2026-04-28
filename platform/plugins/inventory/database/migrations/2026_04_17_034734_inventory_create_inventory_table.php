@@ -19,7 +19,7 @@ return new class () extends Migration {
         if (! Schema::hasTable('inventories_translations')) {
             Schema::create('inventories_translations', function (Blueprint $table) {
                 $table->string('lang_code');
-                $table->foreignId('inventories_id');
+                $table->unsignedBigInteger('inventories_id');
                 $table->string('name', 255)->nullable();
 
                 $table->primary(['lang_code', 'inventories_id'], 'inventories_translations_primary');

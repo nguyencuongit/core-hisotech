@@ -32,9 +32,6 @@ return new class extends Migration
                 $table->index('receipt_date');
                 $table->index('status');
                 $table->index('reference_code');
-
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->restrictOnDelete();
-                $table->foreign('warehouse_id')->references('id')->on('inv_warehouses')->restrictOnDelete();
             });
         }
 
@@ -63,11 +60,6 @@ return new class extends Migration
                 $table->index('supplier_product_id');
                 $table->index('sku');
                 $table->index('barcode');
-
-                $table->foreign('goods_receipt_id')->references('id')->on('inv_goods_receipts')->cascadeOnDelete();
-                $table->foreign('product_id')->references('id')->on('ec_products')->restrictOnDelete();
-                $table->foreign('product_variation_id')->references('id')->on('ec_product_variations')->nullOnDelete();
-                $table->foreign('supplier_product_id')->references('id')->on('inv_supplier_products')->nullOnDelete();
             });
         }
 
@@ -91,9 +83,6 @@ return new class extends Migration
                 $table->index('expired_at');
                 $table->index('warehouse_location_id');
                 $table->index('status');
-
-                $table->foreign('goods_receipt_item_id')->references('id')->on('inv_goods_receipt_items')->cascadeOnDelete();
-                $table->foreign('warehouse_location_id')->references('id')->on('inv_warehouse_locations')->nullOnDelete();
             });
         }
 
@@ -126,12 +115,6 @@ return new class extends Migration
                 $table->index('warehouse_location_id');
                 $table->index('batch_id');
                 $table->index('created_at');
-
-                $table->foreign('product_id')->references('id')->on('ec_products')->restrictOnDelete();
-                $table->foreign('product_variation_id')->references('id')->on('ec_product_variations')->nullOnDelete();
-                $table->foreign('warehouse_id')->references('id')->on('inv_warehouses')->restrictOnDelete();
-                $table->foreign('warehouse_location_id')->references('id')->on('inv_warehouse_locations')->nullOnDelete();
-                $table->foreign('batch_id')->references('id')->on('inv_goods_receipt_batches')->nullOnDelete();
             });
         }
 
@@ -163,12 +146,6 @@ return new class extends Migration
                     'warehouse_location_id',
                     'batch_id',
                 ], 'inv_stock_balances_unique_stock_dimension');
-
-                $table->foreign('product_id')->references('id')->on('ec_products')->restrictOnDelete();
-                $table->foreign('product_variation_id')->references('id')->on('ec_product_variations')->nullOnDelete();
-                $table->foreign('warehouse_id')->references('id')->on('inv_warehouses')->restrictOnDelete();
-                $table->foreign('warehouse_location_id')->references('id')->on('inv_warehouse_locations')->nullOnDelete();
-                $table->foreign('batch_id')->references('id')->on('inv_goods_receipt_batches')->nullOnDelete();
             });
         }
     }

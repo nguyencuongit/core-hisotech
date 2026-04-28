@@ -29,9 +29,6 @@ return new class extends Migration
 
                 $table->index('warehouse_map_id');
                 $table->index('location_id');
-
-                $table->foreign('warehouse_map_id')->references('id')->on('inv_warehouse_maps')->cascadeOnDelete();
-                $table->foreign('location_id')->references('id')->on('inv_warehouse_locations')->nullOnDelete();
             });
         }
     }

@@ -1,6 +1,6 @@
 ---
 name: inventory-plugin
-description: Work on the Botble Inventory plugin at platform/plugins/inventory. Use when editing Inventory domain modules such as WarehouseStaff, Warehouse, Supplier, GoodsReceipt, routes, providers, permissions, forms, tables, requests, migrations, services, repositories, usecases, actions, DTOs, or admin UI behavior. Follow the mandatory domain-first structure, register domain providers from InventoryServiceProvider, and validate PHP/Laravel behavior before finishing.
+description: Work on the Botble Inventory plugin at platform/plugins/inventory. Use when editing Inventory domain modules such as WarehouseStaff, Warehouse, Supplier, GoodsReceipt, WarehouseMap, Pallet, Stock, routes, providers, permissions, forms, tables, requests, migrations, services, repositories, usecases, actions, DTOs, or admin UI behavior. Follow the mandatory domain-first structure, register domain providers from InventoryServiceProvider, keep controllers thin, and validate PHP/Laravel behavior before finishing.
 ---
 
 # Inventory Plugin Skill
@@ -13,9 +13,21 @@ Use this skill when working inside the Botble Inventory plugin:
 platform/plugins/inventory
 ```
 
-This skill is about **coding structure, file placement, domain architecture, Botble conventions, validation, routes, permissions, providers, and final checks**.
+This skill is about:
 
-This skill is **not** a warehouse business-logic specification.  
+- coding structure
+- file placement
+- domain architecture
+- Botble conventions
+- validation
+- routes
+- permissions
+- providers
+- migrations
+- final checks
+
+This skill is **not** a warehouse business-logic specification.
+
 Do not add warehouse workflow rules here unless the user explicitly asks for business logic.
 
 ---
@@ -32,7 +44,7 @@ Before editing any code:
    - the domain provider
    - `src/Providers/InventoryServiceProvider.php`
    - related migrations
-   - related Forms/Tables/Requests/Services/Repositories/Usecases/Actions/DTOs
+   - related Forms/Tables/Requests/Services/Repositories/Usecase/Actions/DTOs
 4. Keep feature code inside:
 
 ```txt
@@ -41,11 +53,13 @@ src/Domains/<Domain>
 
 5. Keep root `src/` folders for shared plugin infrastructure only.
 6. Do not move domain-owned code back to root folders.
-7. Run focused PHP lint and route/provider checks before finishing.
-8. Report clearly:
+7. Do not use an older domain folder as proof that mandatory layers can be skipped.
+8. Run focused PHP lint and route/provider checks before finishing.
+9. Report clearly:
    - files changed
    - routes changed
    - permissions changed
+   - providers changed
    - migrations changed
    - checks run
    - anything left unfinished
@@ -56,8 +70,9 @@ src/Domains/<Domain>
 
 Every domain must follow this structure.
 
-Do not treat `Services/`, `Repositories/`, `Usecase/`, `Actions/`, or `DTO/` as optional.  
-They are mandatory domain layers and should be used consistently.
+Do not treat `Services/`, `Repositories/`, `Usecase/`, `Actions/`, or `DTO/` as optional.
+
+They are mandatory domain layers and must be used consistently.
 
 ```txt
 src/Domains/<Domain>/
@@ -77,9 +92,30 @@ src/Domains/<Domain>/
   Usecase/
 ```
 
-### Layer responsibilities
+### Empty mandatory layer folders
 
-#### `Forms/`
+Even if a domain does not yet need concrete classes in every layer, the mandatory layer folders must still exist.
+
+Required folders:
+
+```txt
+Actions/
+DTO/
+Services/
+Repositories/Eloquent/
+Repositories/Interfaces/
+Usecase/
+```
+
+If a folder would otherwise be empty, add a `.gitkeep` file so the structure is committed.
+
+Do not use an older domain folder as proof that `Actions/`, `DTO/`, or `Services/` can be skipped.
+
+---
+
+## 4. Layer Responsibilities
+
+### `Forms/`
 
 Botble admin form definitions.
 
@@ -90,12 +126,23 @@ Use for:
 - field definitions
 - form buttons
 - admin form layout
+- binding the correct Request validator class
 
 Do not put complex business logic here.
 
+If a Botble Form has a matching Request class, set it explicitly:
+
+```php
+->setValidatorClass(WarehouseStaffRequest::class)
+```
+
+Do not import or use generic plugin requests such as `InventoryRequest` for domain forms unless the task explicitly requires it.
+
+Avoid direct `DB::table()` in Forms when a model/service/repository exists.
+
 ---
 
-#### `Tables/`
+### `Tables/`
 
 Botble admin table definitions.
 
@@ -110,9 +157,25 @@ Use for:
 
 Do not write complex mutation logic here.
 
+Table actions must use the exact same permission flags as routes, menus, and `config/permissions.php`.
+
+Correct:
+
+```php
+EditAction::make()->permission('warehouse-positions.edit');
+DeleteBulkAction::make()->permission('warehouse-staff.destroy');
+```
+
+Wrong:
+
+```php
+EditAction::make()->permission('warehouse-positions.create');
+DeleteBulkAction::make()->permission('inventory.warehouse-staff.destroy');
+```
+
 ---
 
-#### `Http/Controllers/`
+### `Http/Controllers/`
 
 Controllers must stay thin.
 
@@ -120,6 +183,8 @@ Controllers should:
 
 - receive request
 - call Form when using Botble form flow
+- call Request validation
+- create DTO from validated request data when needed
 - call Usecase/Action/Service
 - redirect with success/error message
 - never contain large business logic
@@ -137,9 +202,13 @@ Controller
 → Model
 ```
 
+If the operation writes multiple tables, wrap it in `DB::transaction()` in the Service, Usecase, or Action layer.
+
+Controllers may start a transaction only when the existing domain flow already expects it, but new orchestration should be delegated.
+
 ---
 
-#### `Http/Requests/`
+### `Http/Requests/`
 
 Request validation lives here.
 
@@ -155,9 +224,11 @@ Requests must validate:
 
 Do not trust controller input without Request validation.
 
+For update rules, verify the route parameter name before using it in `Rule::unique()->ignore(...)`.
+
 ---
 
-#### `Models/`
+### `Models/`
 
 Eloquent models live here.
 
@@ -171,9 +242,11 @@ Models should define:
 
 Do not put orchestration or multi-table workflow logic in Models.
 
+Do not use Models as service classes.
+
 ---
 
-#### `Providers/`
+### `Providers/`
 
 Domain providers live here.
 
@@ -188,7 +261,7 @@ Do not place domain-specific menus or bindings in the root `InventoryServiceProv
 
 ---
 
-#### `Repositories/Interfaces/`
+### `Repositories/Interfaces/`
 
 Repository interfaces live here.
 
@@ -205,7 +278,7 @@ interface WarehouseStaffAssignmentInterface
 
 ---
 
-#### `Repositories/Eloquent/`
+### `Repositories/Eloquent/`
 
 Eloquent repository implementations live here.
 
@@ -218,9 +291,31 @@ Use repositories for:
 
 Do not put controller-specific UI logic here.
 
+Repository methods must return query builders, collections, models, arrays, or scalar values correctly.
+
+Do not call `toArray()` directly on an Eloquent builder.
+
+Wrong:
+
+```php
+return $this->model->where('staff_id', $id)->toArray();
+```
+
+Correct:
+
+```php
+return $this->model->where('staff_id', $id)->get()->toArray();
+```
+
+Prefer returning a query builder when the caller needs to continue filtering:
+
+```php
+return $this->model->newQuery()->where('staff_id', $id);
+```
+
 ---
 
-#### `Services/`
+### `Services/`
 
 Services contain core domain logic.
 
@@ -235,9 +330,11 @@ Use services for:
 
 Services may call repositories and models.
 
+Services should not render admin UI.
+
 ---
 
-#### `Usecase/`
+### `Usecase/`
 
 Usecases orchestrate a complete user/system operation.
 
@@ -253,9 +350,11 @@ UpdateWarehouseMapUsecase
 
 Keep existing folder spelling as `Usecase/` unless the user asks for a naming migration.
 
+Do not rename `Usecase/` to `UseCase/`, `UseCases/`, or `Usecases/` without an explicit cleanup task.
+
 ---
 
-#### `Actions/`
+### `Actions/`
 
 Actions represent focused single-purpose operations.
 
@@ -265,14 +364,16 @@ Use for small, reusable commands such as:
 CreatePalletAction
 MovePalletAction
 GenerateLocationTreeAction
-SyncWarehouseAssignmentAction
+SyncWarehouseStaffAssignmentsAction
 ```
 
 Actions should be easy to call from controllers, usecases, jobs, or services.
 
+Actions should have one clear reason to change.
+
 ---
 
-#### `DTO/`
+### `DTO/`
 
 DTOs normalize input data between Request/Controller and business layers.
 
@@ -291,9 +392,17 @@ Request validated data
 → Usecase/Action/Service
 ```
 
+Prefer:
+
+```php
+$dto = WarehouseStaffDTO::fromRequest($request);
+```
+
+over passing raw request arrays across multiple layers.
+
 ---
 
-## 4. Domain File Placement Rules
+## 5. Domain File Placement Rules
 
 ### Always keep domain files inside the domain folder
 
@@ -315,7 +424,7 @@ src/Http/Controllers/WarehouseStaffController.php
 
 ### Root folders are shared infrastructure only
 
-The root plugin folders may contain:
+The root plugin folders may contain shared infrastructure such as:
 
 ```txt
 src/Providers/InventoryServiceProvider.php
@@ -328,7 +437,7 @@ Do not add domain-specific CRUD code to root folders.
 
 ---
 
-## 5. Naming Rules
+## 6. Naming Rules
 
 Use clear domain names.
 
@@ -382,7 +491,7 @@ If renaming is requested, update:
 
 ---
 
-## 6. WarehouseStaff Standard
+## 7. WarehouseStaff Standard
 
 `WarehouseStaff` owns:
 
@@ -396,7 +505,7 @@ Keep these files under:
 src/Domains/WarehouseStaff
 ```
 
-Required files:
+Required files/folders:
 
 ```txt
 Actions/
@@ -420,19 +529,21 @@ Tables/WarehousePositionTable.php
 Usecase/AssignmentsUsercase.php
 ```
 
+If `Actions/`, `DTO/`, or `Services/` has no concrete class yet, keep the folder with `.gitkeep`.
+
 ### WarehouseStaff behavior rules
 
 - `WarehouseStaffProvider` registers the staff/position admin menu.
 - `WarehouseStaffProvider` binds `WarehouseStaffAssignmentInterface` to `WarehouseStaffAssignmentRepository`.
 - `InventoryServiceProvider` registers `WarehouseStaffProvider::class`.
 - Do not move staff menus back to the root provider.
-- `WarehouseStaffController` saves the Botble form, then syncs warehouse assignments through `AssignmentsUsercase` inside `DB::transaction()`.
+- `WarehouseStaffController` saves the Botble form, then syncs warehouse assignments through `AssignmentsUsercase` inside `DB::transaction()` if this is the existing current flow.
 - `AssignmentsUsercase` is the current assignment orchestration point.
 - Keep repository details out of controllers.
 - `WarehouseStaffAssignments` uses `inv_warehouse_staff_assignments`.
 - `inv_warehouse_staff_assignments` should keep unique `staff_id + warehouse_id`.
 - Treat staff-to-warehouse as many-to-many through `assignments()`.
-- Do not rely on `WarehouseStaff::warehouse()` for access checks or lists.
+- Do not rely on `WarehouseStaff::warehouse()` for access checks or staff lists.
 - `WarehouseStaffTable` must eager-load `assignments.warehouse`.
 - Non-super-admin staff queries must respect `inventory_warehouse_ids()`.
 - `InventoryContextMiddleware` maps the logged-in user to `WarehouseStaff`, then to assigned warehouse IDs.
@@ -440,9 +551,47 @@ Usecase/AssignmentsUsercase.php
 - `UserWarehouse` and `inv_user_warehouses` exist, but current context flow uses `WarehouseStaffAssignments`.
 - Do not switch staff context flow without an explicit task.
 
+### Warehouse scope safety
+
+For non-super-admin users:
+
+- If `inventory_warehouse_ids()` returns IDs, scope queries with `whereIn`.
+- If `inventory_warehouse_ids()` is empty, return no records.
+- Never fall back to unscoped queries for non-super-admin users.
+
+Correct:
+
+```php
+$query = $model->newQuery();
+
+if (! inventory_is_super_admin()) {
+    $warehouseIds = inventory_warehouse_ids();
+
+    if (empty($warehouseIds)) {
+        return $query->whereRaw('1 = 0');
+    }
+
+    return $query->whereIn('warehouse_id', $warehouseIds);
+}
+
+return $query;
+```
+
+Wrong:
+
+```php
+if (! $isAdmin && ! empty($warehouseIds)) {
+    return $this->model->whereIn('warehouse_id', $warehouseIds);
+}
+
+return $this->model;
+```
+
+The wrong example leaks all records when the user is not admin and has no assigned warehouses.
+
 ---
 
-## 7. WarehouseStaff Route And Permission Rules
+## 8. WarehouseStaff Route And Permission Rules
 
 Route names:
 
@@ -469,7 +618,7 @@ Rules:
 
 - Keep route permissions, table action permissions, menu permissions, and `config/permissions.php` aligned.
 - Do not mix `warehouse-positions.delete` with `warehouse-positions.destroy`.
-- Do not mix `inventory.warehouse-staff.*` permission flags unless the full permission set is migrated.
+- Do not mix `inventory.warehouse-staff.*` permission flags unless the full permission set is intentionally migrated.
 - When changing permission names, update:
   - routes
   - tables
@@ -479,7 +628,7 @@ Rules:
 
 ---
 
-## 8. WarehouseStaff Validation Rules
+## 9. WarehouseStaff Validation Rules
 
 ### Staff
 
@@ -497,6 +646,29 @@ status valid
 user_id nullable and exists in users if provided
 ```
 
+Recommended Laravel rules:
+
+```php
+return [
+    'full_name' => ['required', 'string', 'max:255'],
+    'staff_code' => [
+        'required',
+        'string',
+        'max:100',
+        Rule::unique('inv_warehouse_staff', 'staff_code')->ignore($this->route('warehouse_staff')),
+    ],
+    'phone' => ['required', 'string', 'max:50'],
+    'email' => ['required', 'email', 'max:255'],
+    'warehouse_id' => ['required', 'array'],
+    'warehouse_id.*' => ['integer', 'exists:inv_warehouses,id'],
+    'position' => ['nullable', 'integer', 'exists:inv_warehouse_positions,id'],
+    'status' => ['nullable', 'string'],
+    'user_id' => ['nullable', 'integer', 'exists:users,id'],
+];
+```
+
+Verify route parameter names before using the example as-is.
+
 ### Position
 
 `WarehousePositionRequest` must validate:
@@ -508,6 +680,24 @@ level integer min 0 max 100
 is_active boolean/status valid
 ```
 
+Recommended Laravel rules:
+
+```php
+return [
+    'name' => ['required', 'string', 'max:255'],
+    'code' => [
+        'required',
+        'string',
+        'max:100',
+        Rule::unique('inv_warehouse_positions', 'code')->ignore($this->route('warehouse_position')),
+    ],
+    'level' => ['nullable', 'integer', 'min:0', 'max:100'],
+    'is_active' => ['nullable', 'boolean'],
+];
+```
+
+Verify route parameter names before using the example as-is.
+
 ### Label rule
 
 If editing Vietnamese labels:
@@ -516,7 +706,21 @@ If editing Vietnamese labels:
 - or use translation keys
 - do not preserve mojibake labels
 
-Example:
+Correct:
+
+```txt
+Mã chức vụ
+Mã nhân viên
+Tên nhân viên
+```
+
+Wrong:
+
+```txt
+MÃ nhÃ¢n viÃªn
+```
+
+For `WarehousePositionForm`, the code field label should be:
 
 ```txt
 Mã chức vụ
@@ -525,12 +729,12 @@ Mã chức vụ
 not:
 
 ```txt
-MÃ nhÃ¢n viÃªn
+Mã nhân viên
 ```
 
 ---
 
-## 9. Warehouse Domain Rules
+## 10. Warehouse Domain Rules
 
 Warehouse-owned code belongs under:
 
@@ -579,11 +783,12 @@ Rules:
 - Validate supplier product consistency when supplier product is used.
 - Validate duplicate warehouse/product/variation combinations, including nullable variation cases.
 - If a warehouse product has stock, receipt, or balance history, deactivate it instead of deleting it.
-- Controllers must call Services/Usecases/Actions for multi-step logic.
+- Controllers must call Services/Usecase/Actions for multi-step logic.
+- Keep warehouse-scoped queries safe for non-super-admin users.
 
 ---
 
-## 10. GoodsReceipt Domain Rules
+## 11. GoodsReceipt Domain Rules
 
 GoodsReceipt-owned code belongs under:
 
@@ -627,12 +832,13 @@ Rules:
 - Product search must use active `inv_warehouse_products`.
 - Supplier suggestions read from `inv_supplier_products`.
 - Controllers stay thin.
-- Multi-table writes belong in service/usecase/action and must use `DB::transaction()`.
+- Multi-table writes belong in Service/Usecase/Action and must use `DB::transaction()`.
 - Do not post stock transactions, stock balances, or ecommerce product quantity unless the task explicitly defines posting rules.
+- Do not mix goods receipt draft/save logic with stock posting logic unless explicitly requested.
 
 ---
 
-## 11. Supplier Domain Rules
+## 12. Supplier Domain Rules
 
 Supplier-owned code belongs under:
 
@@ -679,12 +885,118 @@ Rules:
   - `src/Tables`
   - `src/Repositories`
 - Controllers stay thin.
-- Multi-table writes belong in `SupplierService` or a usecase/action and must use `DB::transaction()`.
+- Multi-table writes belong in `SupplierService` or a Usecase/Action and must use `DB::transaction()`.
 - Render supplier enum statuses with labels/badges, not raw values.
+- Keep supplier product relations under the Supplier domain unless a task explicitly moves shared logic elsewhere.
 
 ---
 
-## 12. Provider Rules
+## 13. WarehouseMap Domain Rules
+
+WarehouseMap-owned code belongs under:
+
+```txt
+src/Domains/WarehouseMap
+```
+
+Required structure:
+
+```txt
+Actions/
+DTO/
+Forms/
+Http/Controllers/
+Http/Requests/
+Models/
+Providers/
+Repositories/Eloquent/
+Repositories/Interfaces/
+Services/
+Tables/
+Usecase/
+```
+
+Rules:
+
+- Map is a visual layer only.
+- Location is the real storage address.
+- Do not make map cells the source of truth for stock.
+- Map interactions that affect real storage must resolve to valid warehouse locations.
+- Keep map rendering/UI logic separate from stock movement logic.
+
+---
+
+## 14. Pallet Domain Rules
+
+Pallet-owned code belongs under:
+
+```txt
+src/Domains/Pallet
+```
+
+Required structure:
+
+```txt
+Actions/
+DTO/
+Forms/
+Http/Controllers/
+Http/Requests/
+Models/
+Providers/
+Repositories/Eloquent/
+Repositories/Interfaces/
+Services/
+Tables/
+Usecase/
+```
+
+Rules:
+
+- Pallet is a real container for goods.
+- Pallet status changes should be handled by Services/Actions.
+- Pallet movement should be transactional.
+- Do not directly change stock balance in pallet UI controllers.
+- If pallet movement affects stock, delegate to the correct stock/ledger service or usecase.
+
+---
+
+## 15. Stock Domain Rules
+
+Stock-owned code belongs under:
+
+```txt
+src/Domains/Stock
+```
+
+Required structure:
+
+```txt
+Actions/
+DTO/
+Forms/
+Http/Controllers/
+Http/Requests/
+Models/
+Providers/
+Repositories/Eloquent/
+Repositories/Interfaces/
+Services/
+Tables/
+Usecase/
+```
+
+Rules:
+
+- Stock balance is the source of truth for inventory quantity.
+- Stock ledger records quantity movement history.
+- Do not silently update stock balance without ledger rules if posting is part of the task.
+- Do not post stock from draft documents unless explicitly requested.
+- Do not mix receipt creation with receipt posting unless the task explicitly defines that behavior.
+
+---
+
+## 16. Provider Rules
 
 `InventoryServiceProvider` owns shared bootstrapping only:
 
@@ -713,10 +1025,11 @@ Rules:
 - Domain-specific repository bindings belong in the domain provider.
 - Do not put domain-specific CRUD menu registration in `InventoryServiceProvider`.
 - If a new domain is added, add its provider registration to `InventoryServiceProvider`.
+- If a provider import is added, run lint on `InventoryServiceProvider.php`.
 
 ---
 
-## 13. Route Rules
+## 17. Route Rules
 
 Routes live in:
 
@@ -742,10 +1055,53 @@ Rules:
 - The inventory route group uses `inventory.context` middleware.
 - Keep `inventory.context` middleware when adding admin inventory routes that depend on warehouse scope.
 - Keep route names aligned with table/menu/config permissions.
+- Do not add duplicate route names.
+- Do not change route parameter names without checking Requests and controllers.
 
 ---
 
-## 14. Migration Rules
+## 18. Permission Rules
+
+Permissions are defined in:
+
+```txt
+config/permissions.php
+```
+
+Rules:
+
+- Use one naming style per domain.
+- Prefer bare permission flags for Inventory domain actions.
+- Keep permissions aligned across:
+  - routes
+  - tables
+  - menus
+  - config/permissions.php
+- Do not use `.delete` in one place and `.destroy` in another.
+- Do not prefix permissions with `inventory.` unless the whole domain intentionally uses that style.
+- When adding a route action, add the matching permission if it should be protected.
+
+Recommended CRUD permission pattern:
+
+```txt
+<domain>.index
+<domain>.create
+<domain>.edit
+<domain>.destroy
+```
+
+Example:
+
+```txt
+warehouse-staff.index
+warehouse-staff.create
+warehouse-staff.edit
+warehouse-staff.destroy
+```
+
+---
+
+## 19. Migration Rules
 
 Migrations live in the plugin migration folder.
 
@@ -758,10 +1114,12 @@ Rules:
 - Do not run destructive migrations unless explicitly requested.
 - If a field is legacy but still used, do not drop it casually.
 - If dropping/renaming a field, explain data impact and provide safe migration strategy.
+- For assignment pivot tables, enforce unique business keys where required.
+- For `inv_warehouse_staff_assignments`, keep unique `staff_id + warehouse_id`.
 
 ---
 
-## 15. Cleanup Rules
+## 20. Cleanup Rules
 
 Do not place domain files in the wrong domain.
 
@@ -781,9 +1139,11 @@ A file under Domains/Warehouse declares namespace Botble\Inventory\Domains\Wareh
 
 This is a cleanup issue.
 
+Do not mix cleanup refactors into unrelated fixes unless required to make the task work.
+
 ---
 
-## 16. Code Style Rules
+## 21. Code Style Rules
 
 - Keep controllers thin.
 - Keep service/usecase/action responsibilities clear.
@@ -798,10 +1158,14 @@ This is a cleanup issue.
 - Avoid direct `DB::table()` in Forms when a model/service/repository exists.
 - Do not introduce unrelated refactors while fixing a specific task.
 - Preserve existing working behavior unless the task asks to change it.
+- Keep namespaces aligned with folder paths.
+- Prefer explicit imports over fully-qualified class names scattered through methods.
+- Do not leave unused imports after editing.
+- Do not leave debug code such as `dd()`, `dump()`, or `ray()`.
 
 ---
 
-## 17. Focused Validation Checklist
+## 22. Focused Validation Checklist
 
 Run focused checks after changes.
 
@@ -810,6 +1174,8 @@ Run focused checks after changes.
 ```powershell
 php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Providers/WarehouseStaffProvider.php
 php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Http/Controllers/WarehouseStaffController.php
+php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Http/Requests/WarehouseStaffRequest.php
+php -l platform/plugins/inventory/src/Domains/WarehouseStaff/Http/Requests/WarehousePositionRequest.php
 php artisan route:list --name=inventory.warehouse-staff
 php artisan route:list --name=inventory.warehouse-positions
 ```
@@ -840,9 +1206,23 @@ platform/plugins/inventory/backup.php
 
 in source lint because it is not runtime code.
 
+### Composer/autoload check if classes moved or renamed
+
+```powershell
+composer dump-autoload
+```
+
+### Cache clear when routes/providers/config changed
+
+```powershell
+php artisan optimize:clear
+```
+
+Only claim a check passed if it was actually run.
+
 ---
 
-## 18. Finish Criteria
+## 23. Finish Criteria
 
 Before final response, confirm:
 
@@ -860,10 +1240,12 @@ Before final response, confirm:
   - `Services/`
   - `Tables/`
   - `Usecase/`
+- Empty mandatory folders have `.gitkeep`.
 - Routes point to domain controllers.
 - Provider registration and domain provider bindings are correct.
 - Permission flags are aligned between routes, tables, menus, and config.
 - Warehouse-scoped queries respect `inventory.context` when needed.
+- Non-super-admin empty warehouse scope does not leak all records.
 - PHP lint passes for touched PHP files.
 - Route list or Laravel boot checks pass when routes/providers changed.
 - Migrations are listed/checked when migrations changed.
@@ -871,9 +1253,9 @@ Before final response, confirm:
 
 ---
 
-## 19. Final Response Format
+## 24. Final Response Format
 
-When finished, respond with:
+When finished, respond in Vietnamese with:
 
 ```txt
 1. Đã làm gì
@@ -885,3 +1267,18 @@ When finished, respond with:
 ```
 
 Do not claim checks passed if they were not run.
+
+---
+
+## 25. Agent Safety Rules
+
+When acting as a coding agent:
+
+- Do not guess file contents when the file exists.
+- Read before editing.
+- Do not overwrite unrelated user changes.
+- Do not run destructive commands unless explicitly requested.
+- Do not delete migrations or data files without explicit approval.
+- Prefer small, targeted patches.
+- Explain skipped checks honestly.
+- If the current code conflicts with this skill, follow this skill unless the user explicitly says to preserve legacy behavior.

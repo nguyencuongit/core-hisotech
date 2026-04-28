@@ -42,7 +42,8 @@ return new class extends Migration
                 $table->unsignedBigInteger('acted_by')->nullable();
                 $table->timestamp('acted_at')->nullable();
                 $table->json('meta')->nullable();
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
+
+                $table->index('supplier_id');
             });
         }
 
@@ -57,7 +58,8 @@ return new class extends Migration
                 $table->string('email')->nullable();
                 $table->string('identity_number', 50)->nullable();
                 $table->json('social_contact')->nullable();
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
+
+                $table->index('supplier_id');
             });
         }
 
@@ -72,7 +74,8 @@ return new class extends Migration
                 $table->unsignedBigInteger('district_id')->nullable();
                 $table->unsignedBigInteger('province_id')->nullable();
                 $table->unsignedBigInteger('country_id')->nullable();
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
+
+                $table->index('supplier_id');
             });
         }
 
@@ -85,7 +88,8 @@ return new class extends Migration
                 $table->string('branch')->nullable();
                 $table->string('account_number', 100);
                 $table->string('account_name');
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
+
+                $table->index('supplier_id');
             });
         }
 
@@ -99,9 +103,9 @@ return new class extends Migration
                 $table->unsignedInteger('moq')->nullable();
                 $table->unsignedInteger('lead_time_days')->nullable();
                 $table->timestamps();
+
                 $table->unique(['supplier_id', 'product_id']);
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
-                $table->foreign('product_id')->references('id')->on('ec_products')->cascadeOnDelete();
+                $table->index('product_id');
             });
         }
     }

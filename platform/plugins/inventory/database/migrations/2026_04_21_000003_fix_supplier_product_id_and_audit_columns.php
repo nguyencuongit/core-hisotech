@@ -56,19 +56,12 @@ return new class extends Migration
             ADD UNIQUE inv_supplier_products_supplier_id_product_id_unique (supplier_id, product_id)
         ');
 
-        $this->addForeignKeyIfMissing('inv_supplier_products', 'inv_supplier_products_product_id_foreign', '
-            ALTER TABLE inv_supplier_products
-            ADD CONSTRAINT inv_supplier_products_product_id_foreign
-            FOREIGN KEY (product_id) REFERENCES ec_products (id) ON DELETE CASCADE
-        ');
-
         $this->backfillSupplierApprovalLogs();
     }
 
     public function down(): void
     {
         if (Schema::hasTable('inv_supplier_products')) {
-            $this->dropForeignKeyIfExists('inv_supplier_products', 'inv_supplier_products_product_id_foreign');
             $this->dropIndexIfExists('inv_supplier_products', 'inv_supplier_products_supplier_id_product_id_unique');
 
             if (Schema::getColumnType('inv_supplier_products', 'product_id') !== 'char') {
@@ -99,14 +92,6 @@ return new class extends Migration
         );
     }
 
-    private function foreignKeyExists(string $table, string $foreignKey): bool
-    {
-        return (bool) DB::selectOne(
-            'SELECT 1 FROM information_schema.table_constraints WHERE constraint_schema = DATABASE() AND table_name = ? AND constraint_name = ? AND constraint_type = ? LIMIT 1',
-            [$table, $foreignKey, 'FOREIGN KEY']
-        );
-    }
-
     private function dropIndexIfExists(string $table, string $index): void
     {
         if ($this->indexExists($table, $index)) {
@@ -117,20 +102,6 @@ return new class extends Migration
     private function addIndexIfMissing(string $table, string $index, string $statement): void
     {
         if (! $this->indexExists($table, $index)) {
-            DB::statement($statement);
-        }
-    }
-
-    private function dropForeignKeyIfExists(string $table, string $foreignKey): void
-    {
-        if ($this->foreignKeyExists($table, $foreignKey)) {
-            DB::statement(sprintf('ALTER TABLE %s DROP FOREIGN KEY %s', $table, $foreignKey));
-        }
-    }
-
-    private function addForeignKeyIfMissing(string $table, string $foreignKey, string $statement): void
-    {
-        if (! $this->foreignKeyExists($table, $foreignKey)) {
             DB::statement($statement);
         }
     }

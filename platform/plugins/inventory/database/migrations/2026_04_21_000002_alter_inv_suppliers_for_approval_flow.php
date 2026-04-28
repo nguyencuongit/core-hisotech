@@ -51,7 +51,8 @@ return new class extends Migration
                 $table->unsignedBigInteger('acted_by')->nullable();
                 $table->timestamp('acted_at')->nullable();
                 $table->json('meta')->nullable();
-                $table->foreign('supplier_id')->references('id')->on('inv_suppliers')->cascadeOnDelete();
+
+                $table->index('supplier_id');
             });
         }
     }
