@@ -11,6 +11,7 @@ use Botble\Table\Columns\Column;
 use Botble\Table\Columns\CreatedAtColumn;
 use Botble\Table\Columns\IdColumn;
 use Botble\Table\Columns\NameColumn;
+use Botble\Table\Columns\RowActionsColumn;
 use Botble\Table\HeaderActions\CreateHeaderAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -21,6 +22,7 @@ class WarehouseTable extends TableAbstract
     public function setup(): void
     {
         $this
+            ->setView('plugins/inventory::warehouse.table')
             ->model(Warehouse::class)
             ->addHeaderAction(
                 CreateHeaderAction::make()->route('inventory.warehouse.create')->permission('warehouse.create')
@@ -45,8 +47,8 @@ class WarehouseTable extends TableAbstract
             ->eloquent($this->query())
             ->editColumn('status', function (Warehouse $item) {
                 return (int) $item->status === 1
-                    ? '<span class="badge bg-success-lt text-success">Active</span>'
-                    : '<span class="badge bg-danger-lt text-danger">Inactive</span>';
+                    ? '<span class="badge" style="background:#166534;color:#fff;border-radius:999px;padding:.45rem .75rem;font-weight:600;">Đang hoạt động</span>'
+                    : '<span class="badge" style="background:#b42318;color:#fff;border-radius:999px;padding:.45rem .75rem;font-weight:600;">Ngừng hoạt động</span>';
             });
 
         return $this->toJson($data);
@@ -96,10 +98,21 @@ class WarehouseTable extends TableAbstract
                 ->title('Địa chỉ kho'),
 
             Column::make('status')
-                ->title('Active')
+                ->title('Trạng thái')
                 ->alignCenter(),
 
             CreatedAtColumn::make(),
+        ];
+    }
+
+    protected function getRowActionsHeading(): array
+    {
+        return [
+            RowActionsColumn::make()
+                ->title(trans('core/base::tables.operations'))
+                ->alignCenter()
+                ->nowrap()
+                ->responsivePriority(1),
         ];
     }
 }

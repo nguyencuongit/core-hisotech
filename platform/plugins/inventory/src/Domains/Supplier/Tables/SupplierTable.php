@@ -11,6 +11,7 @@ use Botble\Table\BulkActions\DeleteBulkAction;
 use Botble\Table\Columns\CreatedAtColumn;
 use Botble\Table\Columns\FormattedColumn;
 use Botble\Table\Columns\NameColumn;
+use Botble\Table\Columns\RowActionsColumn;
 use Botble\Table\HeaderActions\CreateHeaderAction;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,11 +20,12 @@ class SupplierTable extends TableAbstract
     public function setup(): void
     {
         $this
+            ->setView('plugins/inventory::suppliers.table')
             ->model(Supplier::class)
-            ->addHeaderAction(CreateHeaderAction::make()->route('inventory.suppliers.create'))
+            ->addHeaderAction(CreateHeaderAction::make()->route('inventory.suppliers.create')->permission('inventory.suppliers.create'))
             ->addActions([
-                EditAction::make()->route('inventory.suppliers.edit'),
-                DeleteAction::make()->route('inventory.suppliers.destroy'),
+                EditAction::make()->route('inventory.suppliers.edit')->permission('inventory.suppliers.edit'),
+                DeleteAction::make()->route('inventory.suppliers.destroy')->permission('inventory.suppliers.delete'),
             ])
             ->addColumns([
                 FormattedColumn::make('code')
@@ -92,5 +94,16 @@ class SupplierTable extends TableAbstract
                     ->withCount('supplierProducts')
                     ->with(['contacts' => fn ($query) => $query->where('is_primary', true)]);
             });
+    }
+
+    protected function getRowActionsHeading(): array
+    {
+        return [
+            RowActionsColumn::make()
+                ->title(trans('core/base::tables.operations'))
+                ->alignCenter()
+                ->nowrap()
+                ->responsivePriority(1),
+        ];
     }
 }

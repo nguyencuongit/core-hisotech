@@ -5,15 +5,24 @@ namespace Botble\Inventory\Domains\Warehouse\Http\Controllers;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Botble\Inventory\Domains\Warehouse\Services\WarehouseTemplateService;
+use Botble\Inventory\Domains\Warehouse\Support\WarehouseTemplateRegistry;
 use Illuminate\Http\Request;
 
 class WarehouseTemplateController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json([
-            'data' => \Botble\Inventory\Domains\Warehouse\Support\WarehouseTemplateRegistry::all(),
-        ]);
+        $templates = WarehouseTemplateRegistry::all();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'data' => $templates,
+            ]);
+        }
+
+        $this->pageTitle('Mẫu kho');
+
+        return view('plugins/inventory::warehouse.templates.index', compact('templates'));
     }
 
     public function apply(Warehouse $warehouse, Request $request, WarehouseTemplateService $service)

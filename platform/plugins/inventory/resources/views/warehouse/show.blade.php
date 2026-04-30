@@ -363,6 +363,10 @@
         }
     </style>
 
+    @if(! $isWarehouseSetupReady)
+        @include('plugins/inventory::warehouse.partials.unconfigured')
+    @else
+    @include('plugins/inventory::warehouse.partials.configured-glassline')
     <div class="warehouse-workspace {{ $isMapFocusMode ? 'is-map-focus' : '' }}">
         <div class="container-fluid warehouse-shell">
             <section class="warehouse-card warehouse-hero">
@@ -371,7 +375,7 @@
                         <div class="warehouse-kicker">Quản lý kho</div>
                         <h1 class="warehouse-title">{{ $warehouse->name }}</h1>
                         <div class="warehouse-subtitle">
-                            Bản điều khiển kho mới được tối ưu để người mới có thể setup từ đầu theo đúng mô hình thực tế, không cần hiểu hết kỹ thuật ngay lập tức.
+                            Bảng vận hành kho đã sẵn sàng: theo dõi sơ đồ, vị trí, sản phẩm và pallet trong cùng một màn hình.
                         </div>
                         <div class="warehouse-header-meta">
                             <span class="badge bg-light text-dark"><i class="ti ti-building-warehouse me-1"></i>{{ $warehouse->code }}</span>
@@ -1820,4 +1824,5 @@
     </div>
 
     @include('plugins/inventory::warehouse.partials.show-map-editor-script', ['warehouseShow' => $warehouseShow])
+    @endif
 @endsection

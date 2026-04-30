@@ -60,7 +60,13 @@ class WarehouseController extends BaseController
     {
         $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $warehouse->name]));
 
-        return WarehouseForm::createFromModel($warehouse)->renderForm();
+        $form = WarehouseForm::createFromModel($warehouse)
+            ->contentOnly()
+            ->setUrl(route('inventory.warehouse.update', $warehouse))
+            ->setMethod('POST')
+            ->formClass('warehouse-edit-form');
+
+        return view('plugins/inventory::warehouse.edit', compact('warehouse', 'form'));
     }
 
     public function update(Warehouse $warehouse, WarehouseRequest $request)

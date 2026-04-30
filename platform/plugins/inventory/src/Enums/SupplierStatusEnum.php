@@ -26,14 +26,19 @@ enum SupplierStatusEnum: string
 
     public function toHtml(): string
     {
-        $color = match ($this) {
-            self::DRAFT, self::PENDING_APPROVAL => 'secondary',
-            self::ACTIVE, self::APPROVED => 'success',
-            self::INACTIVE => 'warning',
-            self::BLACKLISTED, self::REJECTED => 'danger',
+        [$background, $textColor] = match ($this) {
+            self::DRAFT, self::PENDING_APPROVAL => ['#E2E8F0', '#0F1419'],
+            self::ACTIVE, self::APPROVED => ['#166534', '#FFFFFF'],
+            self::INACTIVE => ['#B45309', '#FFFFFF'],
+            self::BLACKLISTED, self::REJECTED => ['#B42318', '#FFFFFF'],
         };
 
-        return sprintf('<span class="badge bg-%s">%s</span>', $color, e($this->label()));
+        return sprintf(
+            '<span class="badge" style="background:%s;color:%s;border-radius:999px;padding:0.45rem 0.75rem;font-weight:600;">%s</span>',
+            $background,
+            $textColor,
+            e($this->label())
+        );
     }
 
     public function isApproved(): bool

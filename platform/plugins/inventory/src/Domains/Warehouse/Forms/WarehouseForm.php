@@ -23,10 +23,10 @@ class WarehouseForm extends FormAbstract
             ->model(Warehouse::class)
             ->setValidatorClass(WarehouseRequest::class)
             ->add('general_title', HtmlField::class, HtmlFieldOption::make()
-                ->content('<h3 class="mb-3">Thông tin kho</h3>')
+                ->content('<div class="warehouse-edit-section-heading"><span>01</span><h2>Thông tin kho</h2></div>')
             )
             ->add('row_1_start', HtmlField::class, HtmlFieldOption::make()
-                ->content('<div class="row my-3">')
+                ->content('<div class="row g-3 warehouse-edit-form-grid">')
             )
             ->add('name', TextField::class, NameFieldOption::make()
                 ->label('Tên kho')
@@ -42,17 +42,25 @@ class WarehouseForm extends FormAbstract
                 ->content('</div>')
             )
             ->add('row_2_start', HtmlField::class, HtmlFieldOption::make()
-                ->content('<div class="row my-3">')
+                ->content('<div class="row g-3 warehouse-edit-form-grid">')
             )
             ->add('type', TextField::class, TextFieldOption::make()
                 ->label('Kiểu kho')
+                ->wrapperAttributes(['class' => 'col-md-6'])
+            )
+            ->add('status', SelectField::class, SelectFieldOption::make()
+                ->label('Trạng thái')
+                ->choices([
+                    1 => 'Kích hoạt',
+                    0 => 'Không kích hoạt',
+                ])
                 ->wrapperAttributes(['class' => 'col-md-6'])
             )
             ->add('row_2_end', HtmlField::class, HtmlFieldOption::make()
                 ->content('</div>')
             )
             ->add('row_3_start', HtmlField::class, HtmlFieldOption::make()
-                ->content('<div class="row my-3">')
+                ->content('<div class="row g-3 warehouse-edit-form-grid">')
             )
             ->add('phone', TextField::class, TextFieldOption::make()
                 ->label('Số điện thoại')
@@ -75,14 +83,6 @@ class WarehouseForm extends FormAbstract
                 ->label('Ghi chú')
                 ->rows(4)
                 ->wrapperAttributes(['class' => 'col-12 mt-3'])
-            )
-            ->add('status', SelectField::class, SelectFieldOption::make()
-                ->label('Trạng thái')
-                ->choices([
-                    1 => 'Kích hoạt',
-                    0 => 'Không kích hoạt',
-                ])
-            )
-            ->setBreakFieldPoint('status');
+            );
     }
 }

@@ -2,14 +2,13 @@
 
 @section('content')
     @php
-        $form = \Botble\Inventory\Domains\Warehouse\Forms\WarehouseForm::create()
-            ->contentOnly()
-            ->setUrl(route('inventory.warehouse.store'))
-            ->formClass('warehouse-create-form');
+        $isActive = (int) $warehouse->status === 1;
+        $statusLabel = $isActive ? 'Đang hoạt động' : 'Ngừng hoạt động';
+        $statusColor = $isActive ? '#166534' : '#b42318';
     @endphp
 
     <style>
-        .warehouse-create-glassline-page {
+        .warehouse-edit-glassline-page {
             background: #f1f3f5;
             color: #0f1419;
             font-family: Geist, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -18,21 +17,21 @@
             padding: 24px;
         }
 
-        .warehouse-create-glassline {
+        .warehouse-edit-glassline {
             display: grid;
             gap: 24px;
         }
 
-        .warehouse-create-header {
+        .warehouse-edit-header {
             align-items: flex-start;
             display: flex;
             gap: 16px;
             justify-content: space-between;
         }
 
-        .warehouse-create-eyebrow,
+        .warehouse-edit-eyebrow,
         .warehouse-edit-section-heading span,
-        .warehouse-create-summary-label {
+        .warehouse-edit-summary-label {
             color: #4a5568;
             font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 0.75rem;
@@ -40,16 +39,34 @@
             text-transform: uppercase;
         }
 
-        .warehouse-create-title {
+        .warehouse-edit-title {
             color: #0f1419;
             font-size: 2.25rem;
             font-weight: 600;
             letter-spacing: 0;
             line-height: 1.1;
-            margin: 4px 0 0;
+            margin: 4px 0 10px;
         }
 
-        .warehouse-create-actions {
+        .warehouse-edit-meta {
+            align-items: center;
+            color: #4a5568;
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 0.95rem;
+            gap: 10px;
+        }
+
+        .warehouse-edit-status {
+            background: var(--warehouse-status-color);
+            border-radius: 999px;
+            color: #fff;
+            display: inline-flex;
+            font-weight: 600;
+            padding: 7px 12px;
+        }
+
+        .warehouse-edit-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -90,29 +107,29 @@
             color: #0f1419;
         }
 
-        .warehouse-create-layout {
+        .warehouse-edit-layout {
             align-items: start;
             display: grid;
             gap: 24px;
             grid-template-columns: minmax(0, 1fr) 340px;
         }
 
-        .warehouse-create-panel,
-        .warehouse-create-summary {
+        .warehouse-edit-panel,
+        .warehouse-edit-summary {
             background: #fff;
             border: 1px solid rgba(74, 85, 104, 0.18);
             border-radius: 16px;
             box-shadow: none;
         }
 
-        .warehouse-create-panel-header,
-        .warehouse-create-summary-header {
+        .warehouse-edit-panel-header,
+        .warehouse-edit-summary-header {
             border-bottom: 1px solid rgba(74, 85, 104, 0.14);
             padding: 24px;
         }
 
-        .warehouse-create-panel-title,
-        .warehouse-create-summary-title {
+        .warehouse-edit-panel-title,
+        .warehouse-edit-summary-title {
             color: #0f1419;
             font-size: 1.25rem;
             font-weight: 600;
@@ -120,8 +137,8 @@
             margin: 0;
         }
 
-        .warehouse-create-panel-body,
-        .warehouse-create-summary-body {
+        .warehouse-edit-panel-body,
+        .warehouse-edit-summary-body {
             padding: 24px;
         }
 
@@ -144,13 +161,13 @@
             margin-top: 16px;
         }
 
-        .warehouse-create-form .form-group,
-        .warehouse-create-form .mb-3 {
+        .warehouse-edit-form .form-group,
+        .warehouse-edit-form .mb-3 {
             margin-bottom: 16px !important;
         }
 
-        .warehouse-create-form label,
-        .warehouse-create-form .form-label {
+        .warehouse-edit-form label,
+        .warehouse-edit-form .form-label {
             color: #4a5568;
             font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 0.75rem;
@@ -162,10 +179,10 @@
             white-space: normal;
         }
 
-        .warehouse-create-form .form-control,
-        .warehouse-create-form .form-select,
-        .warehouse-create-form select,
-        .warehouse-create-form textarea {
+        .warehouse-edit-form .form-control,
+        .warehouse-edit-form .form-select,
+        .warehouse-edit-form select,
+        .warehouse-edit-form textarea {
             border-color: rgba(74, 85, 104, 0.22);
             border-radius: 10px;
             color: #0f1419;
@@ -173,19 +190,19 @@
             min-height: 48px;
         }
 
-        .warehouse-create-form textarea {
+        .warehouse-edit-form textarea {
             min-height: 120px;
         }
 
-        .warehouse-create-form .form-control:focus,
-        .warehouse-create-form .form-select:focus,
-        .warehouse-create-form select:focus,
-        .warehouse-create-form textarea:focus {
+        .warehouse-edit-form .form-control:focus,
+        .warehouse-edit-form .form-select:focus,
+        .warehouse-edit-form select:focus,
+        .warehouse-edit-form textarea:focus {
             border-color: #2c5ef5;
             box-shadow: 0 0 0 3px rgba(44, 94, 245, 0.12);
         }
 
-        .warehouse-create-form-actions {
+        .warehouse-edit-form-actions {
             align-items: center;
             border-top: 1px solid rgba(74, 85, 104, 0.14);
             display: flex;
@@ -195,13 +212,13 @@
             padding-top: 24px;
         }
 
-        .warehouse-create-summary-list {
+        .warehouse-edit-summary-list {
             display: grid;
             gap: 14px;
             margin: 0;
         }
 
-        .warehouse-create-summary-item {
+        .warehouse-edit-summary-item {
             background: #f1f3f5;
             border-radius: 10px;
             display: grid;
@@ -209,34 +226,35 @@
             padding: 14px;
         }
 
-        .warehouse-create-summary-value {
+        .warehouse-edit-summary-value {
             color: #0f1419;
             font-size: 0.95rem;
             font-weight: 600;
+            overflow-wrap: anywhere;
         }
 
         @media (max-width: 991.98px) {
-            .warehouse-create-layout {
+            .warehouse-edit-layout {
                 grid-template-columns: 1fr;
             }
         }
 
         @media (max-width: 767.98px) {
-            .warehouse-create-glassline-page {
+            .warehouse-edit-glassline-page {
                 margin: -0.75rem;
                 padding: 16px;
             }
 
-            .warehouse-create-header {
+            .warehouse-edit-header {
                 display: block;
             }
 
-            .warehouse-create-title {
+            .warehouse-edit-title {
                 font-size: 1.75rem;
             }
 
-            .warehouse-create-actions,
-            .warehouse-create-form-actions {
+            .warehouse-edit-actions,
+            .warehouse-edit-form-actions {
                 justify-content: stretch;
                 margin-top: 16px;
             }
@@ -248,55 +266,71 @@
         }
     </style>
 
-    <div class="page-body warehouse-create-glassline-page">
-        <div class="container-fluid warehouse-create-glassline">
-            <div class="warehouse-create-header">
+    <div class="page-body warehouse-edit-glassline-page">
+        <div class="container-fluid warehouse-edit-glassline">
+            <div class="warehouse-edit-header">
                 <div>
-                    <div class="warehouse-create-eyebrow">{{ trans('plugins/inventory::inventory.warehouse.name') }}</div>
-                    <h1 class="warehouse-create-title">Tạo kho</h1>
+                    <div class="warehouse-edit-eyebrow">{{ trans('plugins/inventory::inventory.warehouse.name') }}</div>
+                    <h1 class="warehouse-edit-title">{{ $warehouse->name }}</h1>
+                    <div class="warehouse-edit-meta">
+                        <span>{{ $warehouse->code }}</span>
+                        @if($warehouse->type)
+                            <span>/</span>
+                            <span>{{ $warehouse->type }}</span>
+                        @endif
+                        <span>/</span>
+                        <span class="warehouse-edit-status" style="--warehouse-status-color: {{ $statusColor }}">{{ $statusLabel }}</span>
+                    </div>
                 </div>
 
-                <div class="warehouse-create-actions">
+                <div class="warehouse-edit-actions">
                     <a class="btn warehouse-btn-secondary" href="{{ route('inventory.warehouse.index') }}">Quay lại</a>
+                    <a class="btn warehouse-btn-secondary" href="{{ route('inventory.warehouse.show', $warehouse) }}">Xem kho</a>
                 </div>
             </div>
 
-            <div class="warehouse-create-layout">
-                <section class="warehouse-create-panel">
-                    <div class="warehouse-create-panel-header">
-                        <h2 class="warehouse-create-panel-title">Cấu hình kho</h2>
+            <div class="warehouse-edit-layout">
+                <section class="warehouse-edit-panel">
+                    <div class="warehouse-edit-panel-header">
+                        <h2 class="warehouse-edit-panel-title">Cấu hình kho</h2>
                     </div>
-                    <div class="warehouse-create-panel-body">
+                    <div class="warehouse-edit-panel-body">
                         {!! $form->renderForm([], true, true, false) !!}
 
-                        <div class="warehouse-create-form-actions">
+                        <div class="warehouse-edit-form-actions">
                             <a class="btn warehouse-btn-secondary" href="{{ route('inventory.warehouse.index') }}">Hủy bỏ</a>
-                            <button class="btn warehouse-btn-primary" type="submit">Tạo kho</button>
+                            <button class="btn warehouse-btn-primary" type="submit">Lưu</button>
                         </div>
 
                         {!! Form::close() !!}
                     </div>
                 </section>
 
-                <aside class="warehouse-create-summary">
-                    <div class="warehouse-create-summary-header">
-                        <h2 class="warehouse-create-summary-title">Thiết lập sau khi tạo</h2>
+                <aside class="warehouse-edit-summary">
+                    <div class="warehouse-edit-summary-header">
+                        <h2 class="warehouse-edit-summary-title">Tổng quan</h2>
                     </div>
-                    <div class="warehouse-create-summary-body">
-                        <div class="warehouse-create-summary-list">
-                            <div class="warehouse-create-summary-item">
-                                <div class="warehouse-create-summary-label">Vị trí kho</div>
-                                <div class="warehouse-create-summary-value">Tạo cây vị trí</div>
+                    <div class="warehouse-edit-summary-body">
+                        <div class="warehouse-edit-summary-list">
+                            <div class="warehouse-edit-summary-item">
+                                <div class="warehouse-edit-summary-label">Mã kho</div>
+                                <div class="warehouse-edit-summary-value">{{ $warehouse->code }}</div>
                             </div>
-                            <div class="warehouse-create-summary-item">
-                                <div class="warehouse-create-summary-label">Bản đồ kho</div>
-                                <div class="warehouse-create-summary-value">Gắn sơ đồ vận hành</div>
+                            <div class="warehouse-edit-summary-item">
+                                <div class="warehouse-edit-summary-label">Kiểu kho</div>
+                                <div class="warehouse-edit-summary-value">{{ $warehouse->type ?: 'Chưa thiết lập' }}</div>
                             </div>
-                            <div class="warehouse-create-summary-item">
-                                <div class="warehouse-create-summary-label">Mẫu kho</div>
-                                <div class="warehouse-create-summary-value">
-                                    <a class="warehouse-btn-secondary" href="{{ route('inventory.warehouse.templates.index') }}">Xem mẫu kho</a>
-                                </div>
+                            <div class="warehouse-edit-summary-item">
+                                <div class="warehouse-edit-summary-label">Số điện thoại</div>
+                                <div class="warehouse-edit-summary-value">{{ $warehouse->phone }}</div>
+                            </div>
+                            <div class="warehouse-edit-summary-item">
+                                <div class="warehouse-edit-summary-label">Email</div>
+                                <div class="warehouse-edit-summary-value">{{ $warehouse->email ?: 'Chưa thiết lập' }}</div>
+                            </div>
+                            <div class="warehouse-edit-summary-item">
+                                <div class="warehouse-edit-summary-label">Địa chỉ</div>
+                                <div class="warehouse-edit-summary-value">{{ $warehouse->address }}</div>
                             </div>
                         </div>
                     </div>
