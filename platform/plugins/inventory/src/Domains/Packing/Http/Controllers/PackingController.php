@@ -2,13 +2,12 @@
 
 namespace Botble\Inventory\Domains\Packing\Http\Controllers;
 
-use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
+use Botble\Inventory\Domains\Packing\DTO\PackingDTO;
 use Botble\Inventory\Domains\Packing\Forms\PackingForm;
-use Botble\Inventory\Domains\Packing\Models\PackingList;
+use Botble\Inventory\Domains\Packing\Http\Requests\PackingRequest;
 use Botble\Inventory\Domains\Packing\Tables\PackingTable;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Botble\Inventory\Domains\Packing\UseCases\PackingUsecase;
 
 class PackingController extends BaseController
 {
@@ -33,43 +32,43 @@ class PackingController extends BaseController
         return PackingForm::create()->renderForm();
     }
 
-    public function store(Request $request)
+    public function store(PackingRequest $request, PackingUsecase $usecase)
     {
-        return DB::transaction(function () use ($request) {
-            $form = PackingForm::create()->setRequest($request);
-            $form->save();
+        $packing = $usecase->create(PackingDTO::fromRequest($request));
 
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.packing.index'))
-                ->setNextUrl(route('inventory.packing.edit', $form->getModel()->getKey()))
-                ->setMessage(trans('core/base::notices.create_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.packing.index'))
+            ->setNextUrl(route('inventory.packing.edit', $packing->getKey()))
+            ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
-    public function edit(PackingList $packing)
+    public function edit(int|string $packing, PackingUsecase $usecase)
     {
+        $packing = $usecase->loadForEdit($packing);
+
         $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $packing->code]));
 
         return PackingForm::createFromModel($packing)->renderForm();
     }
 
-    public function update(PackingList $packing, Request $request)
+    public function update(int|string $packing, PackingRequest $request, PackingUsecase $usecase)
     {
-        return DB::transaction(function () use ($request, $packing) {
-            PackingForm::createFromModel($packing)
-                ->setRequest($request)
-                ->save();
+        $usecase->update($packing, PackingDTO::fromRequest($request));
 
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.packing.index'))
-                ->setMessage(trans('core/base::notices.update_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.packing.index'))
+            ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    public function destroy(PackingList $packing)
+    public function destroy(int|string $packing, PackingUsecase $usecase)
     {
-        return DeleteResourceAction::make($packing);
+        $usecase->delete($packing);
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.packing.index'))
+            ->setMessage(trans('core/base::notices.delete_success_message'));
     }
 }

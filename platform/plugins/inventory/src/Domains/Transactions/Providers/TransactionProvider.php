@@ -6,9 +6,8 @@ use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Supports\Filter;
-// interface
-//repository
-//model
+use Botble\Inventory\Domains\Transactions\Repositories\Eloquent\ExportShipmentRepository;
+use Botble\Inventory\Domains\Transactions\Repositories\Interfaces\ExportShipmentInterface;
 
 class TransactionProvider extends ServiceProvider
 {
@@ -16,8 +15,7 @@ class TransactionProvider extends ServiceProvider
 
     public function register(): void
     {
-        
-        
+        $this->app->bind(ExportShipmentInterface::class, ExportShipmentRepository::class);
     }
 
     public function boot(): void
@@ -43,10 +41,5 @@ class TransactionProvider extends ServiceProvider
                 ]);
         });
         
-
-        //  app('router')->aliasMiddleware(
-        //     'warehouse.permission',
-        //     \Botble\Inventory\Domains\WarehouseStaff\Http\Middleware\CheckWarehousePositionPermission::class
-        // );
     }
 }

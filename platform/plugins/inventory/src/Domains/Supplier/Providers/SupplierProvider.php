@@ -6,7 +6,9 @@ use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Repositories\Eloquent\ProductReadRepository;
 use Botble\Inventory\Domains\Supplier\Repositories\Eloquent\SupplierRepository;
+use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\ProductReadInterface;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 
 class SupplierProvider extends ServiceProvider
@@ -18,6 +20,8 @@ class SupplierProvider extends ServiceProvider
         $this->app->bind(SupplierInterface::class, function () {
             return new SupplierRepository(new Supplier());
         });
+
+        $this->app->bind(ProductReadInterface::class, ProductReadRepository::class);
     }
 
     public function boot(): void

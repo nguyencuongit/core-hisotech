@@ -26,6 +26,8 @@ return [
         ],
         'address_type' => [
             'headquarter' => 'Headquarter',
+            'office' => 'Office',
+            'warehouse' => 'Warehouse',
             'billing' => 'Billing',
             'shipping' => 'Shipping',
         ],

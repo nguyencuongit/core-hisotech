@@ -32,16 +32,6 @@ class WarehouseProvider extends ServiceProvider
                 'url' => route('inventory.warehouse.index'),
                 'permissions' => ['warehouse.index'],
             ]);
-
-            DashboardMenu::registerItem([
-                'id' => 'cms-plugins-inventory-warehouse-products',
-                'priority' => 7,
-                'parent_id' => 'cms-plugins-inventory',
-                'name' => 'plugins/inventory::inventory.warehouse_product.name',
-                'icon' => 'ti ti-packages',
-                'url' => route('inventory.warehouse-products.index'),
-                'permissions' => ['warehouse.index'],
-            ]);
         });
     }
 }

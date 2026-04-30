@@ -10,20 +10,12 @@ use Illuminate\Validation\Rule;
 
 class SupplierRequest extends FormRequest
 {
-    protected function prepareForValidation(): void
-    {
-        if (auth()->user()?->isSuperUser()) {
-            return;
-        }
-
-        $this->merge([
-            'status' => $this->route('supplier')?->status?->value ?? SupplierStatusEnum::PENDING_APPROVAL->value,
-        ]);
-    }
-
     public function rules(): array
     {
-        $supplierId = $this->route('supplier')?->getKey();
+        $supplier = $this->route('supplier');
+        $supplierId = is_object($supplier) && method_exists($supplier, 'getKey')
+            ? $supplier->getKey()
+            : $supplier;
 
         return [
             'code' => ['nullable', 'string', 'max:50', Rule::unique('inv_suppliers', 'code')->ignore($supplierId)],

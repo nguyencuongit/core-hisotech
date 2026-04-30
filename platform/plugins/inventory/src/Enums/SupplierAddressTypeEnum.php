@@ -5,6 +5,8 @@ namespace Botble\Inventory\Enums;
 enum SupplierAddressTypeEnum: string
 {
     case HEADQUARTER = 'headquarter';
+    case OFFICE = 'office';
+    case WAREHOUSE = 'warehouse';
     case BILLING = 'billing';
     case SHIPPING = 'shipping';
 
@@ -12,6 +14,8 @@ enum SupplierAddressTypeEnum: string
     {
         return match ($this) {
             self::HEADQUARTER => trans('plugins/inventory::inventory.supplier.address_type.headquarter'),
+            self::OFFICE => trans('plugins/inventory::inventory.supplier.address_type.office'),
+            self::WAREHOUSE => trans('plugins/inventory::inventory.supplier.address_type.warehouse'),
             self::BILLING => trans('plugins/inventory::inventory.supplier.address_type.billing'),
             self::SHIPPING => trans('plugins/inventory::inventory.supplier.address_type.shipping'),
         };

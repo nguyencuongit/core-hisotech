@@ -3,6 +3,7 @@
 namespace Botble\Inventory\Domains\Warehouse\Models;
 
 use Botble\Base\Models\BaseModel;
+use Botble\Inventory\Domains\WarehouseProduct\Models\WarehouseProduct;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 

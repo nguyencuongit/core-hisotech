@@ -23,8 +23,15 @@ class PackingList extends BaseModel
         'status',
         'packer_id',
         'packed_at',
+        'started_at',
+        'completed_at',
+        'cancelled_at',
+        'cancelled_by',
+        'cancelled_reason',
         'total_packages',
+        'total_items',
         'total_weight',
+        'total_volume',
         'note',
     ];
 
@@ -33,8 +40,14 @@ class PackingList extends BaseModel
         'warehouse_id' => 'integer',
         'packer_id' => 'integer',
         'packed_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'cancelled_by' => 'integer',
         'total_packages' => 'integer',
-        'total_weight' => 'decimal:2',
+        'total_items' => 'decimal:4',
+        'total_weight' => 'decimal:4',
+        'total_volume' => 'decimal:4',
     ];
 
     public function export(): BelongsTo
@@ -52,6 +65,11 @@ class PackingList extends BaseModel
         return $this->belongsTo(User::class, 'packer_id');
     }
 
+    public function canceller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(PackingListItem::class, 'packing_list_id');
@@ -60,5 +78,10 @@ class PackingList extends BaseModel
     public function packages(): HasMany
     {
         return $this->hasMany(Package::class, 'packing_list_id');
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(PackingLog::class, 'packing_list_id');
     }
 }

@@ -20,6 +20,7 @@ class StockBalance extends BaseModel
     }
 
     protected $fillable = [
+        'dimension_key',
         'product_id',
         'product_variation_id',
         'warehouse_id',
@@ -35,10 +36,16 @@ class StockBalance extends BaseModel
         'rejected_qty',
         'average_cost',
         'last_unit_cost',
+        'last_movement_at',
         'updated_at',
     ];
 
     protected $casts = [
+        'product_id' => 'integer',
+        'product_variation_id' => 'integer',
+        'warehouse_id' => 'integer',
+        'warehouse_location_id' => 'integer',
+        'pallet_id' => 'integer',
         'quantity' => 'decimal:4',
         'reserved_qty' => 'decimal:4',
         'available_qty' => 'decimal:4',
@@ -47,6 +54,7 @@ class StockBalance extends BaseModel
         'rejected_qty' => 'decimal:4',
         'average_cost' => 'decimal:4',
         'last_unit_cost' => 'decimal:4',
+        'last_movement_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 

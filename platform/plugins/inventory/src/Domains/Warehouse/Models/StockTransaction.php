@@ -23,6 +23,7 @@ class StockTransaction extends BaseModel
     }
 
     protected $fillable = [
+        'stock_balance_id',
         'transaction_code',
         'type',
         'reference_type',
@@ -39,6 +40,8 @@ class StockTransaction extends BaseModel
         'goods_receipt_batch_id',
         'batch_id',
         'quantity',
+        'reserved_delta',
+        'available_delta',
         'unit_cost',
         'before_qty',
         'after_qty',
@@ -48,7 +51,14 @@ class StockTransaction extends BaseModel
     ];
 
     protected $casts = [
+        'product_id' => 'integer',
+        'product_variation_id' => 'integer',
+        'warehouse_id' => 'integer',
+        'warehouse_location_id' => 'integer',
+        'pallet_id' => 'integer',
         'quantity' => 'decimal:4',
+        'reserved_delta' => 'decimal:4',
+        'available_delta' => 'decimal:4',
         'unit_cost' => 'decimal:4',
         'before_qty' => 'decimal:4',
         'after_qty' => 'decimal:4',
@@ -58,6 +68,11 @@ class StockTransaction extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function stockBalance(): BelongsTo
+    {
+        return $this->belongsTo(StockBalance::class, 'stock_balance_id');
     }
 
     public function productVariation(): BelongsTo

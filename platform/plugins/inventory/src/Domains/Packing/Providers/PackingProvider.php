@@ -5,11 +5,8 @@ namespace Botble\Inventory\Domains\Packing\Providers;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Base\Facades\DashboardMenu;
-use Botble\Inventory\Models\Inventory;
-
-// interface
-//repository
-//model
+use Botble\Inventory\Domains\Packing\Repositories\Eloquent\PackingRepository;
+use Botble\Inventory\Domains\Packing\Repositories\Interfaces\PackingInterface;
 
 class PackingProvider extends ServiceProvider
 {
@@ -17,7 +14,7 @@ class PackingProvider extends ServiceProvider
 
     public function register(): void
     {
-        
+        $this->app->bind(PackingInterface::class, PackingRepository::class);
     }
 
     public function boot(): void
@@ -33,11 +30,5 @@ class PackingProvider extends ServiceProvider
                     'permissions' => ['packing.index'],
                 ]);
         });
-
-
-        //  app('router')->aliasMiddleware(
-        //     'warehouse.permission',
-        //     \Botble\Inventory\Domains\WarehouseStaff\Http\Middleware\CheckWarehousePositionPermission::class
-        // );
     }
 }

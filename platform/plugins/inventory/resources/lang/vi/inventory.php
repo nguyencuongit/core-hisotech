@@ -25,6 +25,8 @@ return [
             'rejected' => 'Bị từ chối',
         ],
         'address_type' => [
+            'office' => 'Văn phòng',
+            'warehouse' => 'Kho',
             'headquarter' => 'Trụ sở chính',
             'billing' => 'Thanh toán',
             'shipping' => 'Giao hàng',

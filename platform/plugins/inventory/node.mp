@@ -170,3 +170,32 @@ platform/plugins/inventory/src/
     tạo phiếu xác nhận thì mới thay đổi dữ liệu
 
     usecase request -> controller -> Usecase(sử lý logic) ->repository(sử lý DB) (khai báo trong provider)
+
+
+
+
+
+tạo folder domain mới WarehouseProduct
+move toàn bộ file liên quan từ Warehouse sang đó
+giữ nguyên route, view, logic, permission
+update namespace/import/provider
+kiểm tra lại toàn bộ để không vỡ chỗ nào
+
+tạo domain WarehouseProduct
+di chuyển các class liên quan sang đúng folder
+tách Form, Table, Action, DTO
+cập nhật InventoryServiceProvider và routes
+sửa view để không còn lỗi class/namespace
+
+src/Domains/WarehouseProduct/Models
+src/Domains/WarehouseProduct/Http/Controllers
+src/Domains/WarehouseProduct/Http/Requests
+src/Domains/WarehouseProduct/Forms
+src/Domains/WarehouseProduct/Tables
+src/Domains/WarehouseProduct/Actions
+src/Domains/WarehouseProduct/DTO
+src/Domains/WarehouseProduct/Services
+src/Domains/WarehouseProduct/Repositories/Eloquent
+src/Domains/WarehouseProduct/Repositories/Interfaces
+src/Domains/WarehouseProduct/Providers
+resources/views/warehouse-products

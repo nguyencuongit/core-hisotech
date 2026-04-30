@@ -5,9 +5,10 @@ namespace Botble\Inventory\Domains\Packing\Forms;
 use Botble\Base\Forms\Fields\SelectField;
 use Botble\Base\Forms\Fields\TextField;
 use Botble\Base\Forms\FormAbstract;
-use Botble\Ecommerce\Models\Product;
+use Botble\Inventory\Domains\Packing\Http\Requests\PackingRequest;
 use Botble\Inventory\Domains\Packing\Models\PackingList;
 use Botble\Inventory\Domains\Transactions\Models\Export;
+use Botble\Inventory\Domains\Transactions\Models\ExportItem;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 
 class PackingForm extends FormAbstract
@@ -38,13 +39,48 @@ class PackingForm extends FormAbstract
             ])
             ->all();
 
-        $productChoices = Product::query()
-            ->select(['id', 'name', 'sku'])
-            ->orderBy('name')
-            ->limit(300)
+        $selectedExportId = $this->getRequest()?->input('export_id')
+            ?: ($this->getModel() instanceof PackingList ? $this->getModel()->export_id : null);
+
+        $exportItemQuery = ExportItem::query()
+            ->with('export')
+            ->select([
+                'id',
+                'export_id',
+                'product_id',
+                'product_variation_id',
+                'product_name',
+                'product_code',
+                'document_qty',
+                'packed_qty',
+                'unit_id',
+                'unit_name',
+                'warehouse_location_id',
+                'pallet_id',
+                'batch_id',
+                'goods_receipt_batch_id',
+                'stock_balance_id',
+                'lot_no',
+                'expiry_date',
+            ])
+            ->orderByDesc('id')
+            ->limit(500);
+
+        if ($selectedExportId) {
+            $exportItemQuery->where('export_id', $selectedExportId);
+        }
+
+        $exportItemChoices = $exportItemQuery
             ->get()
-            ->mapWithKeys(fn (Product $product) => [
-                $product->getKey() => trim($product->name . ($product->sku ? ' - ' . $product->sku : '')),
+            ->mapWithKeys(fn (ExportItem $item) => [
+                $item->getKey() => sprintf(
+                    '%s | %s - %s | con %.4f %s',
+                    $item->export?->code ?: 'EXP-' . $item->export_id,
+                    $item->product_code ?: $item->product_id,
+                    $item->product_name ?: 'San pham',
+                    max((float) $item->document_qty - (float) $item->packed_qty, 0),
+                    $item->unit_name ?: ''
+                ),
             ])
             ->all();
 
@@ -53,6 +89,7 @@ class PackingForm extends FormAbstract
         $this
             ->model(PackingList::class)
             ->template('plugins/inventory::forms.full-width-form')
+            ->setValidatorClass(PackingRequest::class)
 
             ->add('form_start', 'html', [
                 'html' => '<div class="card mb-4"><div class="card-body">',
@@ -118,7 +155,6 @@ class PackingForm extends FormAbstract
                     'draft' => 'Draft',
                     'packing' => 'Packing',
                     'packed' => 'Packed',
-                    'shipped' => 'Shipped',
                     'cancelled' => 'Cancelled',
                 ],
                 'empty_value' => 'Chọn trạng thái',
@@ -193,6 +229,30 @@ class PackingForm extends FormAbstract
                 ],
             ])
 
+            ->add('total_items', 'number', [
+                'label' => 'Tong SL dong goi',
+                'attr' => [
+                    'min' => 0,
+                    'step' => '0.0001',
+                    'readonly' => true,
+                ],
+                'wrapper' => [
+                    'class' => 'form-group col-md-3',
+                ],
+            ])
+
+            ->add('total_volume', 'number', [
+                'label' => 'Tong the tich',
+                'attr' => [
+                    'min' => 0,
+                    'step' => '0.0001',
+                    'readonly' => true,
+                ],
+                'wrapper' => [
+                    'class' => 'form-group col-md-3',
+                ],
+            ])
+
             ->add('row_doc_2_close', 'html', [
                 'html' => '</div>',
             ])
@@ -223,7 +283,7 @@ class PackingForm extends FormAbstract
             ->add('packages_prd', 'html', [
                 'html' => view('plugins/inventory::forms.partials.packing-packages', [
                     'packages' => $packageValues,
-                    'products' => $productChoices,
+                    'exportItems' => $exportItemChoices,
                 ])->render(),
             ]);
     }
@@ -242,24 +302,46 @@ class PackingForm extends FormAbstract
             return [];
         }
 
-        $model->loadMissing(['packages.items']);
+        $model->loadMissing(['packages.items', 'packages.legacyItems']);
 
         return $model->packages
             ->map(function ($package) {
                 return [
+                    'id' => $package->getKey(),
                     'package_code' => $package->package_code,
-                    'package_type' => $package->package_type,
+                    'package_no' => $package->package_no,
+                    'package_type_id' => $package->package_type_id,
+                    'status' => $package->status,
                     'length' => $package->length,
                     'width' => $package->width,
                     'height' => $package->height,
+                    'dimension_unit' => $package->dimension_unit,
+                    'volume' => $package->volume,
+                    'volume_weight' => $package->volume_weight,
                     'weight' => $package->weight,
                     'weight_unit' => $package->weight_unit,
+                    'tracking_code' => $package->tracking_code,
+                    'shipping_label_url' => $package->shipping_label_url,
                     'note' => $package->note,
-                    'items' => $package->items->map(function ($item) {
+                    'items' => ($package->items->isNotEmpty() ? $package->items : $package->legacyItems)->map(function ($item) {
                         return [
+                            'id' => $item->getKey(),
+                            'export_item_id' => $item->export_item_id,
                             'product_id' => $item->product_id,
+                            'product_variation_id' => $item->product_variation_id,
+                            'product_code' => $item->product_code,
+                            'product_name' => $item->product_name,
                             'packed_qty' => $item->packed_qty,
+                            'unit_id' => $item->unit_id,
                             'unit_name' => $item->unit_name,
+                            'warehouse_location_id' => $item->warehouse_location_id,
+                            'pallet_id' => $item->pallet_id,
+                            'batch_id' => $item->batch_id,
+                            'goods_receipt_batch_id' => $item->goods_receipt_batch_id,
+                            'stock_balance_id' => $item->stock_balance_id,
+                            'storage_item_id' => $item->storage_item_id,
+                            'lot_no' => $item->lot_no,
+                            'expiry_date' => $item->expiry_date,
                             'note' => $item->note,
                         ];
                     })->values()->all(),

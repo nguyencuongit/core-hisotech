@@ -17,7 +17,7 @@
                 <div class="col-lg-6">
                     <div class="warehouse-soft-card h-100">
                         <h3 class="warehouse-section-title mb-3">Thông tin kho</h3>
-                        {!! WarehouseForm::create()->renderForm() !!}
+                        {!! \Botble\Inventory\Domains\Warehouse\Forms\WarehouseForm::create()->renderForm() !!}
                     </div>
                 </div>
                 <div class="col-lg-6">

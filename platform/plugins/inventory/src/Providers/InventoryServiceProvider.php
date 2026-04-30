@@ -10,6 +10,7 @@ use Botble\Inventory\Support\InventoryContext;
 use Botble\Inventory\Http\Middleware\InventoryContextMiddleware;
 use Botble\Inventory\Domains\Supplier\Providers\SupplierProvider;
 use Botble\Inventory\Domains\Warehouse\Providers\WarehouseProvider;
+use Botble\Inventory\Domains\WarehouseProduct\Providers\WarehouseProductProvider;
 use Botble\Inventory\Domains\WarehouseStaff\Providers\WarehouseStaffProvider;
 use Botble\Inventory\Domains\Transactions\Providers\TransactionProvider;
 use Botble\Inventory\Domains\Packing\Providers\PackingProvider;
@@ -89,6 +90,7 @@ class InventoryServiceProvider extends ServiceProvider
         $this->app->register(SupplierProvider::class);
         $this->app->register(WarehouseStaffProvider::class);
         $this->app->register(WarehouseProvider::class);
+        $this->app->register(WarehouseProductProvider::class);
         $this->app->register(TransactionProvider::class);
         $this->app->register(PackingProvider::class);
         $this->app->register(TransferProvider::class);

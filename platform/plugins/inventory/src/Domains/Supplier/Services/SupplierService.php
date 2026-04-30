@@ -5,21 +5,27 @@ namespace Botble\Inventory\Domains\Supplier\Services;
 use Botble\Base\Events\AdminNotificationEvent;
 use Botble\Base\Supports\AdminNotificationItem;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
-use Botble\Inventory\Domains\Supplier\Models\SupplierApproval;
+use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 use Botble\Inventory\Enums\SupplierStatusEnum;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class SupplierService
 {
+    public function __construct(
+        protected SupplierInterface $suppliers,
+    ) {
+    }
+
     public function create(array $data): Supplier
     {
         return DB::transaction(function () use ($data) {
-            $toStatus = Arr::get($data, 'status');
-            $supplier = Supplier::query()->create($this->prepareSupplierData($data));
+            $supplierAttributes = $this->prepareSupplierData($data);
+            $toStatus = Arr::get($supplierAttributes, 'status');
+            $supplier = $this->suppliers->createSupplier($supplierAttributes);
 
             $this->syncChildren($supplier, $data);
-            $supplier->refresh();
+            $supplier = $this->suppliers->reload($supplier);
 
             $this->logApprovalAction(
                 $supplier,
@@ -51,24 +57,24 @@ class SupplierService
                 );
             }
 
-            return $supplier->load(['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
+            return $this->suppliers->reload($supplier, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
         });
     }
 
     public function update(Supplier $supplier, array $data): Supplier
     {
         return DB::transaction(function () use ($supplier, $data) {
+            $supplier = $this->suppliers->reload($supplier, ['banks', 'addresses']);
             $oldSensitive = $this->sensitiveSnapshot($supplier);
 
-            $supplier->fill($this->prepareSupplierData($data, $supplier));
-            $supplier->save();
+            $this->suppliers->updateSupplier($supplier, $this->prepareSupplierData($data, $supplier));
             $this->syncChildren($supplier, $data, true);
 
-            $freshSupplier = $supplier->fresh()->load(['banks', 'addresses']);
+            $freshSupplier = $this->suppliers->reload($supplier, ['banks', 'addresses']);
             $newSensitive = $this->sensitiveSnapshot($freshSupplier);
 
-            if ($oldSensitive !== $newSensitive && $freshSupplier->status === SupplierStatusEnum::ACTIVE) {
-                $freshSupplier->update([
+            if ($oldSensitive !== $newSensitive && $freshSupplier->status?->isApproved()) {
+                $this->suppliers->updateSupplier($freshSupplier, [
                     'requires_reapproval' => true,
                     'status' => SupplierStatusEnum::PENDING_APPROVAL->value,
                 ]);
@@ -83,7 +89,7 @@ class SupplierService
                 $this->notifySuperAdminForApproval($freshSupplier);
             }
 
-            return $supplier->fresh()->load(['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
+            return $this->suppliers->reload($supplier, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
         });
     }
 
@@ -92,7 +98,7 @@ class SupplierService
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $supplier->update([
+            $this->suppliers->updateSupplier($supplier, [
                 'status' => SupplierStatusEnum::PENDING_APPROVAL->value,
                 'submitted_by' => auth()->id(),
                 'submitted_at' => now(),
@@ -100,9 +106,9 @@ class SupplierService
             ]);
 
             $this->logApprovalAction($supplier, 'submit', $fromStatus, SupplierStatusEnum::PENDING_APPROVAL->value, $note);
-            $this->notifySuperAdminForApproval($supplier->fresh());
+            $this->notifySuperAdminForApproval($this->suppliers->reload($supplier));
 
-            return $supplier->fresh();
+            return $this->suppliers->reload($supplier);
         });
     }
 
@@ -111,7 +117,7 @@ class SupplierService
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $supplier->update([
+            $this->suppliers->updateSupplier($supplier, [
                 'status' => SupplierStatusEnum::ACTIVE->value,
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
@@ -121,7 +127,7 @@ class SupplierService
 
             $this->logApprovalAction($supplier, 'approve', $fromStatus, SupplierStatusEnum::ACTIVE->value, $note);
 
-            return $supplier->fresh();
+            return $this->suppliers->reload($supplier);
         });
     }
 
@@ -130,7 +136,7 @@ class SupplierService
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $supplier->update([
+            $this->suppliers->updateSupplier($supplier, [
                 'status' => SupplierStatusEnum::REJECTED->value,
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
@@ -139,7 +145,7 @@ class SupplierService
 
             $this->logApprovalAction($supplier, 'reject', $fromStatus, SupplierStatusEnum::REJECTED->value, $note);
 
-            return $supplier->fresh();
+            return $this->suppliers->reload($supplier);
         });
     }
 
@@ -148,6 +154,11 @@ class SupplierService
         $code = Arr::get($data, 'code');
         $status = Arr::get($data, 'status');
         $now = now();
+
+        if (! auth()->user()?->isSuperUser()) {
+            $status = $supplier?->status?->value ?? SupplierStatusEnum::PENDING_APPROVAL->value;
+            $data['status'] = $status;
+        }
 
         if (! $code) {
             $code = $supplier?->code ?: $this->generateCode();
@@ -192,10 +203,7 @@ class SupplierService
     protected function syncChildren(Supplier $supplier, array $data, bool $replace = false): void
     {
         if ($replace) {
-            $supplier->contacts()->delete();
-            $supplier->addresses()->delete();
-            $supplier->banks()->delete();
-            $supplier->supplierProducts()->delete();
+            $this->suppliers->deleteChildren($supplier);
         }
 
         $this->syncContacts($supplier, Arr::get($data, 'contacts', []));
@@ -226,7 +234,7 @@ class SupplierService
                 $firstPrimarySet = true;
             }
 
-            $supplier->contacts()->create([
+            $this->suppliers->createContact($supplier, [
                 'name' => Arr::get($contact, 'name'),
                 'position' => Arr::get($contact, 'position'),
                 'phone' => Arr::get($contact, 'phone'),
@@ -260,7 +268,7 @@ class SupplierService
                 $firstDefaultSet = true;
             }
 
-            $supplier->addresses()->create([
+            $this->suppliers->createAddress($supplier, [
                 'type' => Arr::get($address, 'type'),
                 'address' => Arr::get($address, 'address'),
                 'ward_id' => Arr::get($address, 'ward_id'),
@@ -294,7 +302,7 @@ class SupplierService
                 $firstDefaultSet = true;
             }
 
-            $supplier->banks()->create([
+            $this->suppliers->createBank($supplier, [
                 'bank_name' => Arr::get($bank, 'bank_name'),
                 'branch' => Arr::get($bank, 'branch'),
                 'account_number' => Arr::get($bank, 'account_number'),
@@ -317,15 +325,12 @@ class SupplierService
 
             $seenProductIds[] = $productId;
 
-            $supplier->supplierProducts()->updateOrCreate(
-                ['product_id' => $productId],
-                [
-                    'supplier_sku' => Arr::get($product, 'supplier_sku'),
-                    'purchase_price' => $this->nullableNumber(Arr::get($product, 'purchase_price')),
-                    'moq' => $this->nullableInteger(Arr::get($product, 'moq')),
-                    'lead_time_days' => $this->nullableInteger(Arr::get($product, 'lead_time_days')),
-                ]
-            );
+            $this->suppliers->updateOrCreateProduct($supplier, $productId, [
+                'supplier_sku' => Arr::get($product, 'supplier_sku'),
+                'purchase_price' => $this->nullableNumber(Arr::get($product, 'purchase_price')),
+                'moq' => $this->nullableInteger(Arr::get($product, 'moq')),
+                'lead_time_days' => $this->nullableInteger(Arr::get($product, 'lead_time_days')),
+            ]);
         }
     }
 
@@ -363,8 +368,7 @@ class SupplierService
             default => auth()->id(),
         };
 
-        SupplierApproval::query()->create([
-            'supplier_id' => $supplier->getKey(),
+        $this->suppliers->createApproval($supplier, [
             'action' => $action,
             'from_status' => $from,
             'to_status' => $to,
@@ -398,7 +402,7 @@ class SupplierService
     {
         do {
             $code = 'NCC' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
-        } while (Supplier::query()->where('code', $code)->exists());
+        } while ($this->suppliers->codeExists($code));
 
         return $code;
     }

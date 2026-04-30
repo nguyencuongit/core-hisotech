@@ -3,18 +3,12 @@
 namespace Botble\Inventory\Domains\Transactions\Http\Controllers;
 
 use Botble\Base\Http\Actions\DeleteResourceAction;
-use Botble\Inventory\Domains\WarehouseStaff\Http\Requests\WarehouseStaffRequest;
-
-use Botble\Inventory\Domains\WarehouseStaff\Models\WarehouseStaff;
-use Botble\Inventory\Domains\WarehouseStaff\Models\WarehouseStaffAssignments;
-
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Inventory\Domains\Transactions\Tables\ExportTable;
 use Botble\Inventory\Domains\Transactions\Forms\ExportForm;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-
-use Botble\Inventory\Domains\WarehouseStaff\Usecase\AssignmentsUsercase;
+use Botble\Inventory\Domains\Transactions\Models\Export;
+use Botble\Inventory\Domains\Transactions\Services\ExportShipmentService;
+use Illuminate\Http\Request;
 
 class ExportController extends BaseController
 {
@@ -39,54 +33,41 @@ class ExportController extends BaseController
         return ExportForm::create()->renderForm();
     }
 
-    public function store(WarehouseStaffRequest $request, AssignmentsUsercase $assignmentsUsercase)
+    public function store(Request $request)
     {
-        return DB::transaction(function () use ($request,$assignmentsUsercase) {
-            $form = ExportForm::create()->setRequest($request);
+        $form = ExportForm::create()->setRequest($request);
+        $form->save();
 
-            $form->save();
-            $warehouseIds = [];
-            foreach($request->warehouse_id as $item){
-                $warehouseIds[] = $item[0];
-            }
-            $assignmentsUsercase->updateWarehouseId($form->getModel()->getKey(),$warehouseIds,$request->position);
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.warehouse-staff.index'))
-                ->setNextUrl(route('inventory.warehouse-staff.edit', $form->getModel()->getKey()))
-                ->setMessage(trans('core/base::notices.create_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.transactions-export.index'))
+            ->setNextUrl(route('inventory.transactions-export.edit', $form->getModel()->getKey()))
+            ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
-    public function edit(WarehouseStaff $warehouseStaff)
+    public function edit(Export $export)
     {
-        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $warehouseStaff->full_name]));
+        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $export->code]));
 
-        return ExportForm::createFromModel($warehouseStaff)->renderForm();
+        return ExportForm::createFromModel($export)->renderForm();
     }
 
-    public function update(WarehouseStaff $warehouseStaff, WarehouseStaffRequest $request, AssignmentsUsercase $assignmentsUsercase)
+    public function update(Export $export, Request $request, ExportShipmentService $shipmentService)
     {
-        return DB::transaction(function () use ($request, $warehouseStaff,$assignmentsUsercase) {
-            $form = ExportForm::createFromModel($warehouseStaff)
-                ->setRequest($request)
-                ->save();
+        $form = ExportForm::createFromModel($export)
+            ->setRequest($request)
+            ->save();
 
-            $warehouseIds = [];
-            foreach($request->warehouse_id as $item){
-                $warehouseIds[] = $item[0];
-            }
-            $assignmentsUsercase->updateWarehouseId($form->getModel()->getKey(),$warehouseIds,$request->position);
+        $shipmentService->shipPackedItems($form->getModel());
 
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.warehouse-staff.index'))
-                ->setMessage(trans('core/base::notices.update_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.transactions-export.index'))
+            ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    public function destroy(WarehouseStaff $warehouseStaff)
+    public function destroy(Export $export)
     {
-        return DeleteResourceAction::make($warehouseStaff);
+        return DeleteResourceAction::make($export);
     }
 }

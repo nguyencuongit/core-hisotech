@@ -13,7 +13,6 @@ use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Botble\Inventory\Domains\Warehouse\Models\WarehouseLocation;
 use Botble\Inventory\Domains\Warehouse\Models\WarehouseSetting;
 use Botble\Inventory\Domains\Warehouse\Services\PalletService;
-use Botble\Inventory\Domains\Warehouse\Services\WarehouseProductPolicyService;
 use Botble\Inventory\Domains\Warehouse\Services\WarehouseSettingService;
 use Botble\Inventory\Domains\Warehouse\Support\WarehouseShowViewData;
 use Botble\Inventory\Domains\Warehouse\Tables\WarehouseTable;

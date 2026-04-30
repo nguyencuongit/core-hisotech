@@ -3,6 +3,7 @@
 namespace Botble\Inventory\Domains\Warehouse\Services;
 
 use Botble\Inventory\Domains\GoodsReceipt\Models\ReceiptStorageItem;
+use Botble\Inventory\Domains\Packing\Models\PackingListItem;
 use Botble\Inventory\Domains\Warehouse\Models\Pallet;
 use Botble\Inventory\Domains\Warehouse\Models\StockBalance;
 use Botble\Inventory\Domains\Warehouse\Models\StockTransaction;
@@ -74,10 +75,13 @@ class StockLedgerService
             $balance->reserved_qty = (float) ($balance->reserved_qty ?? 0);
             $balance->last_unit_cost = (float) ($storageItem->goodsReceiptItem?->unit_cost ?? $balance->last_unit_cost ?? 0);
             $balance->average_cost = $this->resolveAverageCost($balance, $beforeQty, (float) ($storageItem->goodsReceiptItem?->unit_cost ?? 0), $quantity);
+            $balance->dimension_key = $this->dimensionKey($balance);
+            $balance->last_movement_at = now();
             $balance->updated_at = now();
             $balance->save();
 
             StockTransaction::query()->create([
+                'stock_balance_id' => $balance->getKey(),
                 'transaction_code' => $this->nextTransactionCode(),
                 'type' => $transactionType ?: $this->resolveTransactionType($status),
                 'reference_type' => 'receipt_storage_item',
@@ -94,6 +98,8 @@ class StockLedgerService
                 'goods_receipt_batch_id' => $storageItem->goods_receipt_batch_id,
                 'batch_id' => $storageItem->goods_receipt_batch_id,
                 'quantity' => $quantity,
+                'reserved_delta' => 0,
+                'available_delta' => $availableQty,
                 'unit_cost' => (float) ($storageItem->goodsReceiptItem?->unit_cost ?? 0),
                 'before_qty' => $beforeQty,
                 'after_qty' => (float) $balance->quantity,
@@ -140,10 +146,13 @@ class StockLedgerService
                 $target->rejected_qty = (float) ($target->rejected_qty ?? 0) + (float) $balance->rejected_qty;
                 $target->average_cost = $balance->average_cost;
                 $target->last_unit_cost = $balance->last_unit_cost;
+                $target->dimension_key = $this->dimensionKey($target);
+                $target->last_movement_at = now();
                 $target->updated_at = now();
                 $target->save();
 
                 StockTransaction::query()->create([
+                    'stock_balance_id' => $target->getKey(),
                     'transaction_code' => $this->nextTransactionCode(),
                     'type' => $movementType === 'internal_move' ? 'move' : $movementType,
                     'reference_type' => 'pallet',
@@ -160,6 +169,8 @@ class StockLedgerService
                     'goods_receipt_batch_id' => $balance->goods_receipt_batch_id,
                     'batch_id' => $balance->batch_id,
                     'quantity' => (float) $balance->quantity,
+                    'reserved_delta' => 0,
+                    'available_delta' => (float) $balance->available_qty,
                     'unit_cost' => (float) ($balance->last_unit_cost ?? 0),
                     'before_qty' => $targetBeforeQty,
                     'after_qty' => (float) $target->quantity,
@@ -170,6 +181,97 @@ class StockLedgerService
 
                 $balance->delete();
             }
+        });
+    }
+
+    public function postPackingListItem(PackingListItem $item, string $transactionType = 'packing_packed'): void
+    {
+        if (! $item->stock_balance_id || (float) $item->packed_qty <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($item, $transactionType): void {
+            $item->loadMissing(['packingList', 'exportItem']);
+
+            if (
+                StockTransaction::query()
+                    ->where('type', $transactionType)
+                    ->where('reference_type', 'packing_list_item')
+                    ->where('reference_id', (string) $item->getKey())
+                    ->exists()
+            ) {
+                return;
+            }
+
+            $balance = StockBalance::query()
+                ->lockForUpdate()
+                ->find($item->stock_balance_id);
+
+            if (! $balance) {
+                return;
+            }
+
+            $packedQty = (float) $item->packed_qty;
+            $beforeQty = (float) ($balance->quantity ?? 0);
+            $beforeReserved = (float) ($balance->reserved_qty ?? 0);
+            $beforeAvailable = (float) ($balance->available_qty ?? 0);
+            $quantityDelta = 0.0;
+            $reservedDelta = 0.0;
+            $availableDelta = 0.0;
+
+            if ($transactionType === 'export_shipped') {
+                $quantityDelta = -1 * $packedQty;
+                $reservedDelta = -1 * min($beforeReserved, $packedQty);
+                $availableDelta = -1 * min($beforeAvailable, $packedQty);
+
+                $balance->quantity = max($beforeQty + $quantityDelta, 0);
+                $balance->reserved_qty = max($beforeReserved + $reservedDelta, 0);
+                $balance->available_qty = max($beforeAvailable + $availableDelta, 0);
+
+                if ($item->exportItem) {
+                    $item->exportItem->shipped_qty = min(
+                        (float) ($item->exportItem->packed_qty ?? $packedQty),
+                        (float) ($item->exportItem->shipped_qty ?? 0) + $packedQty
+                    );
+                    $item->exportItem->save();
+                }
+            } else {
+                $reservedDelta = -1 * min($beforeReserved, $packedQty);
+                $balance->reserved_qty = max($beforeReserved + $reservedDelta, 0);
+            }
+
+            $balance->dimension_key = $this->dimensionKey($balance);
+            $balance->last_movement_at = now();
+            $balance->updated_at = now();
+            $balance->save();
+
+            StockTransaction::query()->create([
+                'stock_balance_id' => $balance->getKey(),
+                'transaction_code' => $this->nextTransactionCode(),
+                'type' => $transactionType,
+                'reference_type' => 'packing_list_item',
+                'reference_id' => (string) $item->getKey(),
+                'reference_item_id' => $item->export_item_id ? (string) $item->export_item_id : null,
+                'product_id' => $item->product_id,
+                'product_variation_id' => $item->product_variation_id,
+                'warehouse_id' => $balance->warehouse_id,
+                'warehouse_location_id' => $item->warehouse_location_id ?: $balance->warehouse_location_id,
+                'pallet_id' => $item->pallet_id ?: $balance->pallet_id,
+                'storage_item_id' => $item->storage_item_id,
+                'goods_receipt_id' => null,
+                'goods_receipt_item_id' => null,
+                'goods_receipt_batch_id' => $item->goods_receipt_batch_id ?: $balance->goods_receipt_batch_id,
+                'batch_id' => $item->batch_id ?: $balance->batch_id,
+                'quantity' => $quantityDelta,
+                'reserved_delta' => $reservedDelta,
+                'available_delta' => $availableDelta,
+                'unit_cost' => (float) ($balance->last_unit_cost ?? 0),
+                'before_qty' => $beforeQty,
+                'after_qty' => (float) $balance->quantity,
+                'note' => $item->note,
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+            ]);
         });
     }
 
@@ -250,5 +352,18 @@ class StockLedgerService
         } while (StockTransaction::query()->where('transaction_code', $code)->exists());
 
         return $code;
+    }
+
+    protected function dimensionKey(StockBalance $balance): string
+    {
+        return implode('|', [
+            (string) ($balance->warehouse_id ?: 0),
+            (string) ($balance->warehouse_location_id ?: 0),
+            (string) ($balance->pallet_id ?: 0),
+            (string) ($balance->product_id ?: 0),
+            (string) ($balance->product_variation_id ?: 0),
+            (string) ($balance->batch_id ?: ''),
+            (string) ($balance->goods_receipt_batch_id ?: ''),
+        ]);
     }
 }

@@ -58,8 +58,12 @@ class ExportTable extends TableAbstract
             ->query();
 
         $warehouseIds = inventory_warehouse_ids();
-        if(!inventory_is_super_admin() && !empty($warehouseIds)){
-            $query->whereIn('warehouse_id', $warehouseIds);
+        if (! inventory_is_super_admin()) {
+            if (empty($warehouseIds)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('warehouse_id', $warehouseIds);
+            }
         }
 
         return $this->applyScopes($query);
@@ -70,7 +74,7 @@ class ExportTable extends TableAbstract
         return [
             IdColumn::make(),
 
-            NameColumn::make()->title('Mã đơn')
+            NameColumn::make('code')->title('Mã đơn')
                 ->route('inventory.transactions-export.edit'),
             FormattedColumn::make('warehouse_id')
                 ->title('Kho'),

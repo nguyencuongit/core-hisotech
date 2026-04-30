@@ -36,7 +36,7 @@ class PackingTable extends TableAbstract
                 DeleteAction::make()->route('inventory.packing.destroy')->permission('packing.destroy'),
             ])
             ->addBulkActions([
-                DeleteBulkAction::make()->permission('inventory.packing.destroy'),
+                DeleteBulkAction::make()->permission('packing.destroy'),
             ]);
     }
 
@@ -49,6 +49,7 @@ class PackingTable extends TableAbstract
             ->query()
             ->with('warehouse')        
             ->select([
+                'id',
                 'export_id',
                 'warehouse_id',
                 'code',
@@ -56,13 +57,20 @@ class PackingTable extends TableAbstract
                 'packer_id',
                 'packed_at',
                 'total_packages',
+                'total_items',
                 'total_weight',
+                'total_volume',
                 'note',
+                'created_at',
             ]);
         
         $warehouseIds = inventory_warehouse_ids();
-        if(!inventory_is_super_admin() && !empty($warehouseIds)){
-            $query->whereIn('warehouse_id', $warehouseIds);
+        if (! inventory_is_super_admin()) {
+            if (empty($warehouseIds)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('warehouse_id', $warehouseIds);
+            }
         }
 
         return $this->applyScopes($query);
@@ -80,13 +88,7 @@ class PackingTable extends TableAbstract
                 ->orderable(false)
                 ->searchable(false)
                 ->renderUsing(function (FormattedColumn $column) {
-                    $warehouses = $column->getItem()
-                        ->assignments
-                        ->pluck('warehouse.name')
-                        ->filter()
-                        ->implode(', ');
-
-                    return $warehouses ?: '&mdash;';
+                    return $column->getItem()->warehouse?->name ?: '&mdash;';
                 }),
 
         
