@@ -10,6 +10,7 @@ use Botble\Inventory\Domains\Packing\Repositories\Interfaces\PackingInterface;
 use Botble\Inventory\Domains\Transactions\Models\ExportItem;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 
 class PackingRepository implements PackingInterface
 {
@@ -145,10 +146,13 @@ class PackingRepository implements PackingInterface
             return;
         }
 
-        $totals = PackingListItem::query()
-            ->whereIn('export_item_id', $exportItemIds)
-            ->selectRaw('export_item_id, SUM(packed_qty) as packed_qty')
-            ->groupBy('export_item_id')
+        $totals = DB::table('inv_packing_list_items as items')
+            ->join('inv_packing_lists as lists', 'lists.id', '=', 'items.packing_list_id')
+            ->whereIn('items.export_item_id', $exportItemIds)
+            ->whereNull('lists.deleted_at')
+            ->whereIn('lists.status', ['packing', 'packed'])
+            ->selectRaw('items.export_item_id as export_item_id, SUM(items.packed_qty) as packed_qty')
+            ->groupBy('items.export_item_id')
             ->pluck('packed_qty', 'export_item_id')
             ->map(fn ($value) => (float) $value);
 

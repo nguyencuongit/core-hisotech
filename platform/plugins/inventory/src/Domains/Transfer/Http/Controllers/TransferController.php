@@ -2,13 +2,13 @@
 
 namespace Botble\Inventory\Domains\Transfer\Http\Controllers;
 
-use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
+use Botble\Inventory\Domains\Transfer\DTO\TransferDTO;
 use Botble\Inventory\Domains\Transfer\Forms\TransferForm;
+use Botble\Inventory\Domains\Transfer\Http\Requests\TransferRequest;
 use Botble\Inventory\Domains\Transfer\Models\InternalTransfer;
+use Botble\Inventory\Domains\Transfer\Services\TransferService;
 use Botble\Inventory\Domains\Transfer\Tables\TransferTable;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class TransferController extends BaseController
 {
@@ -33,18 +33,15 @@ class TransferController extends BaseController
         return TransferForm::create()->renderForm();
     }
 
-    public function store(Request $request)
+    public function store(TransferRequest $request, TransferService $service)
     {
-        return DB::transaction(function () use ($request) {
-            $form = TransferForm::create()->setRequest($request);
-            $form->save();
+        $transfer = $service->create(TransferDTO::fromRequest($request));
 
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.transfer.index'))
-                ->setNextUrl(route('inventory.transfer.edit', $form->getModel()->getKey()))
-                ->setMessage(trans('core/base::notices.create_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.transfer.index'))
+            ->setNextUrl(route('inventory.transfer.edit', $transfer->getKey()))
+            ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
     public function edit(InternalTransfer $transfer)
@@ -54,22 +51,23 @@ class TransferController extends BaseController
         return TransferForm::createFromModel($transfer)->renderForm();
     }
 
-    public function update(InternalTransfer $transfer, Request $request)
+    public function update(InternalTransfer $transfer, TransferRequest $request, TransferService $service)
     {
-        return DB::transaction(function () use ($request, $transfer) {
-            TransferForm::createFromModel($transfer)
-                ->setRequest($request)
-                ->save();
+        $service->update($transfer, TransferDTO::fromRequest($request));
 
-            return $this
-                ->httpResponse()
-                ->setPreviousUrl(route('inventory.transfer.index'))
-                ->setMessage(trans('core/base::notices.update_success_message'));
-        });
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.transfer.index'))
+            ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    public function destroy(InternalTransfer $transfer)
+    public function destroy(InternalTransfer $transfer, TransferService $service)
     {
-        return DeleteResourceAction::make($transfer);
+        $service->delete($transfer);
+
+        return $this
+            ->httpResponse()
+            ->setPreviousUrl(route('inventory.transfer.index'))
+            ->setMessage(trans('core/base::notices.delete_success_message'));
     }
 }

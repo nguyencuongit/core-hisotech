@@ -7,6 +7,8 @@ use Botble\Inventory\Domains\Packing\Models\Package;
 use Botble\Inventory\Domains\Packing\Models\PackingList;
 use Botble\Inventory\Domains\Packing\Models\PackingListItem;
 use Botble\Inventory\Domains\Packing\Repositories\Interfaces\PackingInterface;
+use Botble\Inventory\Domains\Transactions\Models\Export;
+use Botble\Inventory\Domains\Transactions\Models\ExportItem;
 use Botble\Inventory\Domains\Warehouse\Services\StockLedgerService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +25,10 @@ class PackingService
     public function create(PackingDTO $dto): PackingList
     {
         return DB::transaction(function () use ($dto): PackingList {
+            $dto = $this->normalizeStatusByCompleteness($dto);
+
+            $this->validatePayload($dto);
+
             $packingList = $this->packings->createList($this->prepareListAttributes($dto));
             $newExportItemIds = $this->syncPackages($packingList, $dto);
 
@@ -43,6 +49,17 @@ class PackingService
     {
         return DB::transaction(function () use ($packingList, $dto): PackingList {
             $oldStatus = (string) $packingList->status;
+
+            if ($oldStatus === 'packed') {
+                throw ValidationException::withMessages([
+                    'status' => 'Phiếu đóng gói đã packed, không thể sửa trực tiếp. Cần tạo nghiệp vụ hủy/đảo ledger riêng.',
+                ]);
+            }
+
+            $dto = $this->normalizeStatusByCompleteness($dto, $packingList);
+
+            $this->validatePayload($dto, $packingList);
+
             $oldExportItemIds = array_keys($this->packings->packedQuantitiesForList($packingList));
 
             $this->packings->updateList($packingList, $this->prepareListAttributes($dto, $packingList));
@@ -62,6 +79,73 @@ class PackingService
         });
     }
 
+    protected function normalizeStatusByCompleteness(PackingDTO $dto, ?PackingList $packingList = null): PackingDTO
+    {
+        $status = (string) Arr::get($dto->attributes, 'status', 'draft');
+
+        if ($status === 'cancelled') {
+            return $dto;
+        }
+
+        $attributes = $dto->attributes;
+
+        if ($this->payloadCoversExportItems($dto, $packingList)) {
+            $attributes['status'] = 'packed';
+
+            return new PackingDTO($attributes, $dto->packages);
+        }
+
+        $attributes['status'] = 'draft';
+        $attributes['started_at'] = null;
+        $attributes['packed_at'] = null;
+        $attributes['completed_at'] = null;
+
+        return new PackingDTO($attributes, $dto->packages);
+    }
+
+    protected function payloadCoversExportItems(PackingDTO $dto, ?PackingList $packingList = null): bool
+    {
+        $exportId = (int) Arr::get($dto->attributes, 'export_id');
+
+        if (! $exportId) {
+            return false;
+        }
+
+        $exportItems = ExportItem::query()
+            ->where('export_id', $exportId)
+            ->get(['id', 'document_qty'])
+            ->keyBy('id');
+
+        if ($exportItems->isEmpty()) {
+            return false;
+        }
+
+        $requestedQuantities = $this->requestedQuantitiesByExportItem($dto);
+
+        if ($requestedQuantities === []) {
+            return false;
+        }
+
+        $alreadyPackedQuantities = $this->alreadyPackedQuantities($exportItems->keys()->all(), $packingList);
+
+        foreach ($exportItems as $exportItemId => $exportItem) {
+            $documentQty = (float) ($exportItem->document_qty ?? 0);
+
+            if ($documentQty <= 0) {
+                continue;
+            }
+
+            $alreadyPackedQty = (float) $alreadyPackedQuantities->get($exportItemId, 0);
+            $requestedQty = (float) ($requestedQuantities[(int) $exportItemId] ?? 0);
+
+            if ($alreadyPackedQty + $requestedQty + 0.0001 < $documentQty) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function delete(PackingList $packingList): bool
     {
         return DB::transaction(function () use ($packingList): bool {
@@ -79,6 +163,159 @@ class PackingService
 
             return $deleted;
         });
+    }
+
+    protected function validatePayload(PackingDTO $dto, ?PackingList $packingList = null): void
+    {
+        $exportId = (int) Arr::get($dto->attributes, 'export_id');
+        $warehouseId = (int) Arr::get($dto->attributes, 'warehouse_id');
+        $status = (string) Arr::get($dto->attributes, 'status', 'draft');
+
+        $export = Export::query()->find($exportId);
+
+        if (! $export) {
+            throw ValidationException::withMessages([
+                'export_id' => 'Phiếu xuất không tồn tại.',
+            ]);
+        }
+
+        $activePacking = PackingList::query()
+            ->where('export_id', $exportId)
+            ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', 'cancelled'))
+            ->when($packingList, fn ($query) => $query->whereKeyNot($packingList->getKey()))
+            ->first(['id', 'code', 'status']);
+
+        if ($activePacking) {
+            throw ValidationException::withMessages([
+                'export_id' => sprintf(
+                    'Phieu xuat nay da co phieu dong goi %s (%s). Vui long mo phieu do de sua, khong tao lai.',
+                    $activePacking->code ?: 'PACK-' . $activePacking->getKey(),
+                    $activePacking->status ?: 'draft'
+                ),
+            ]);
+        }
+
+        if (! inventory_is_super_admin()) {
+            $warehouseIds = array_values(array_map('intval', inventory_warehouse_ids()));
+
+            if ($export->warehouse_id && ! in_array((int) $export->warehouse_id, $warehouseIds, true)) {
+                throw ValidationException::withMessages([
+                    'export_id' => 'Bạn không có quyền đóng gói phiếu xuất của kho này.',
+                ]);
+            }
+        }
+
+        if ($export->warehouse_id && $warehouseId && (int) $export->warehouse_id !== $warehouseId) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => 'Kho đóng gói phải trùng với kho xuất của phiếu xuất.',
+            ]);
+        }
+
+        $requestedQuantities = $this->requestedQuantitiesByExportItem($dto);
+
+        if ($status === 'packed' && $requestedQuantities === []) {
+            throw ValidationException::withMessages([
+                'packages' => 'Phiếu packed phải có ít nhất một dòng hàng đóng gói.',
+            ]);
+        }
+
+        if ($status === 'packed') {
+            $this->validatePackedPackages($dto);
+        }
+
+        if ($requestedQuantities === []) {
+            return;
+        }
+
+        $exportItems = ExportItem::query()
+            ->where('export_id', $exportId)
+            ->whereIn('id', array_keys($requestedQuantities))
+            ->get()
+            ->keyBy('id');
+
+        $alreadyPackedQuantities = $this->alreadyPackedQuantities(array_keys($requestedQuantities), $packingList);
+
+        foreach ($requestedQuantities as $exportItemId => $qty) {
+            if (! $exportItems->has($exportItemId)) {
+                throw ValidationException::withMessages([
+                    'packages' => 'Dòng phiếu xuất không thuộc phiếu xuất đang chọn.',
+                ]);
+            }
+
+            $documentQty = (float) ($exportItems->get($exportItemId)->document_qty ?? 0);
+            $alreadyPackedQty = (float) $alreadyPackedQuantities->get($exportItemId, 0);
+            $allowedQty = max($documentQty - $alreadyPackedQty, 0);
+
+            if ($qty > $allowedQty + 0.0001) {
+                throw ValidationException::withMessages([
+                    'packages' => sprintf('Dòng phiếu xuất #%s chỉ còn được đóng %.4f, nhưng đang nhập %.4f.', $exportItemId, $allowedQty, $qty),
+                ]);
+            }
+        }
+    }
+
+    protected function validatePackedPackages(PackingDTO $dto): void
+    {
+        foreach ($dto->packages as $packageIndex => $package) {
+            $items = array_filter(
+                Arr::get($package, 'items', []),
+                fn (array $item): bool => (float) Arr::get($item, 'packed_qty', 0) > 0
+            );
+
+            if ($items === []) {
+                throw ValidationException::withMessages([
+                    sprintf('packages.%s.items', $packageIndex) => 'Moi kien hang phai chon it nhat mot san pham truoc khi hoan tat dong goi.',
+                ]);
+            }
+        }
+    }
+
+    protected function requestedQuantitiesByExportItem(PackingDTO $dto): array
+    {
+        $quantities = [];
+
+        foreach ($dto->packages as $packageIndex => $package) {
+            foreach (Arr::get($package, 'items', []) as $itemIndex => $item) {
+                $qty = (float) Arr::get($item, 'packed_qty', 0);
+
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                $exportItemId = Arr::get($item, 'export_item_id');
+
+                if (! $exportItemId) {
+                    throw ValidationException::withMessages([
+                        sprintf('packages.%s.items.%s.export_item_id', $packageIndex, $itemIndex) => 'Chọn dòng phiếu xuất trước khi đóng gói.',
+                    ]);
+                }
+
+                $exportItemId = (int) $exportItemId;
+                $quantities[$exportItemId] = ($quantities[$exportItemId] ?? 0) + $qty;
+            }
+        }
+
+        return $quantities;
+    }
+
+    protected function alreadyPackedQuantities(array $exportItemIds, ?PackingList $packingList = null): \Illuminate\Support\Collection
+    {
+        $exportItemIds = array_values(array_unique(array_filter(array_map('intval', $exportItemIds))));
+
+        if ($exportItemIds === []) {
+            return collect();
+        }
+
+        return DB::table('inv_packing_list_items as items')
+            ->join('inv_packing_lists as lists', 'lists.id', '=', 'items.packing_list_id')
+            ->whereIn('items.export_item_id', $exportItemIds)
+            ->whereNull('lists.deleted_at')
+            ->whereIn('lists.status', ['packing', 'packed'])
+            ->when($packingList, fn ($query) => $query->where('lists.id', '!=', $packingList->getKey()))
+            ->selectRaw('items.export_item_id as export_item_id, SUM(items.packed_qty) as packed_qty')
+            ->groupBy('items.export_item_id')
+            ->pluck('packed_qty', 'export_item_id')
+            ->map(fn ($value): float => (float) $value);
     }
 
     protected function prepareListAttributes(PackingDTO $dto, ?PackingList $packingList = null): array
@@ -227,7 +464,7 @@ class PackingService
     protected function itemAttributes(array $itemData, mixed $exportItem = null): array
     {
         return [
-            'export_item_id' => $exportItem?->getKey() ?: Arr::get($itemData, 'export_item_id'),
+            'export_item_id' => $exportItem?->getKey(),
             'product_id' => Arr::get($itemData, 'product_id') ?: $exportItem?->product_id,
             'product_variation_id' => Arr::get($itemData, 'product_variation_id') ?: $exportItem?->product_variation_id,
             'product_code' => Arr::get($itemData, 'product_code') ?: $exportItem?->product_code,

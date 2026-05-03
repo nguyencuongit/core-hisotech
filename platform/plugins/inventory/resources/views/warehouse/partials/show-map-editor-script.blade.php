@@ -111,12 +111,28 @@
                     return;
                 }
 
+                if (panel.classList.contains('modal')) {
+                    openModal(panel);
+                    return;
+                }
+
                 panel.classList.toggle('warehouse-hidden');
             });
         });
 
         $$('[data-open-warehouse-settings]').forEach((button) => {
-            button.addEventListener('click', () => openModal(document.querySelector('[data-warehouse-settings-modal]')));
+            button.addEventListener('click', () => {
+                const settingsModal = document.querySelector('[data-warehouse-settings-modal]');
+                const currentModal = button.closest('.modal.show');
+
+                if (currentModal && currentModal !== settingsModal && window.bootstrap?.Modal) {
+                    currentModal.addEventListener('hidden.bs.modal', () => openModal(settingsModal), { once: true });
+                    window.bootstrap.Modal.getOrCreateInstance(currentModal).hide();
+                    return;
+                }
+
+                openModal(settingsModal);
+            });
         });
 
         $$('[data-open-setup-wizard]').forEach((button) => {

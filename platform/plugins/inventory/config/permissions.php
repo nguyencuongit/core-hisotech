@@ -266,6 +266,26 @@ return [
         'flag' => 'transfer.destroy',
         'parent_flag' => 'transfer.index',
     ],
+    [
+        'name' => 'Approve transfer',
+        'flag' => 'transfer.approve',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Export transfer',
+        'flag' => 'transfer.export',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Receive transfer',
+        'flag' => 'transfer.receive',
+        'parent_flag' => 'transfer.index',
+    ],
+    [
+        'name' => 'Cancel transfer',
+        'flag' => 'transfer.cancel',
+        'parent_flag' => 'transfer.index',
+    ],
 
     // report
     [

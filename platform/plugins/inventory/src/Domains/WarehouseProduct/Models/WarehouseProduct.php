@@ -9,6 +9,7 @@ use Botble\Ecommerce\Models\ProductVariation;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
 use Botble\Inventory\Domains\Supplier\Models\SupplierProduct;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
+use Botble\Inventory\Domains\Warehouse\Models\WarehouseLocation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -56,6 +57,11 @@ class WarehouseProduct extends BaseModel
     public function supplierProduct(): BelongsTo
     {
         return $this->belongsTo(SupplierProduct::class, 'supplier_product_id');
+    }
+
+    public function defaultLocation(): BelongsTo
+    {
+        return $this->belongsTo(WarehouseLocation::class, 'default_location_id');
     }
 
     public function policy(): HasOne

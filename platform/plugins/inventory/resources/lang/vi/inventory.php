@@ -224,4 +224,14 @@ return [
         ],
     ],
 
+    'packing' => [
+        'name' => 'Đóng gói',
+    ],
+    'transfer' => [
+        'name' => 'Chuyển kho',
+    ],
+    'return' => [
+        'name' => 'Trả hàng',
+    ],
+
 ];

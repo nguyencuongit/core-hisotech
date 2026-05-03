@@ -82,6 +82,12 @@ class WarehouseShowViewData
             'meta_json' => $item->meta_json ?? [],
         ])->values();
 
+        $tabs = $this->tabs();
+        $requestedTab = (string) request('tab', 'maps');
+        $activeTab = $requestedTab === 'settings' || ! array_key_exists($requestedTab, $tabs)
+            ? 'maps'
+            : $requestedTab;
+
         return [
             'locationMeta' => $registry::locationMeta(),
             'locationTypes' => collect($registry::locationMeta())->mapWithKeys(fn ($meta, $key) => [$key => $meta['label']])->all(),
@@ -112,8 +118,8 @@ class WarehouseShowViewData
             'unlinkedLocationCount' => $selectedMapItems->whereNull('location_id')->count(),
             'setupCheckpoints' => $this->setupCheckpoints($setupState),
             'isWarehouseSetupReady' => $setupState['is_ready'],
-            'tabs' => $this->tabs(),
-            'activeTab' => request('tab', 'maps'),
+            'tabs' => $tabs,
+            'activeTab' => $activeTab,
             'mapEditorConfig' => $this->mapEditorConfig($selectedMap, $selectedMapItemsPayload, $mapEditorTools, $selectedStorageMode, $selectedLocation, $selectedLocationMapItem, $selectedMapBackgroundUrl),
             'selectedMapId' => $selectedMapId,
             'selectedLocationId' => $selectedLocationId,
@@ -209,7 +215,6 @@ class WarehouseShowViewData
     {
         return [
             'overview' => 'Tổng quan',
-            'settings' => 'Cài đặt kho',
             'locations' => 'Cây vị trí',
             'maps' => 'Sơ đồ kho',
             'products' => 'Sản phẩm',

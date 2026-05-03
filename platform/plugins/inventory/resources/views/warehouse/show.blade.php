@@ -52,6 +52,35 @@
             'damaged' => 'bg-danger-lt text-danger',
             'locked' => 'bg-warning-lt text-warning',
         ];
+        $warehouseProductRows = $warehouse->warehouseProducts ?? collect();
+        $warehouseProductLocationById = $locations->keyBy('id');
+        $warehouseProductStockMap = $warehouseProductStock instanceof \Illuminate\Support\Collection ? $warehouseProductStock : collect($warehouseProductStock ?? []);
+        $warehouseProductUnitLabels = $warehouseProductUnitLabels instanceof \Illuminate\Support\Collection ? $warehouseProductUnitLabels : collect($warehouseProductUnitLabels ?? []);
+        $formatWarehouseQty = static function ($value): string {
+            $formatted = number_format((float) ($value ?? 0), 4, '.', ',');
+
+            return rtrim(rtrim($formatted, '0'), '.') ?: '0';
+        };
+        $warehouseProductStockTotals = $warehouseProductStockMap->reduce(static function (array $carry, $stock): array {
+            $carry['quantity'] += (float) ($stock->quantity ?? 0);
+            $carry['available'] += (float) ($stock->available_qty ?? 0);
+            $carry['reserved'] += (float) ($stock->reserved_qty ?? 0);
+            $carry['qc_hold'] += (float) ($stock->qc_hold_qty ?? 0);
+
+            return $carry;
+        }, ['quantity' => 0, 'available' => 0, 'reserved' => 0, 'qc_hold' => 0]);
+        $warehouseProductLowStockCount = $warehouseProductRows->filter(static function ($warehouseProduct) use ($warehouseProductStockMap): bool {
+            $reorderPoint = (float) ($warehouseProduct->reorder_point_qty ?? 0);
+
+            if ($reorderPoint <= 0) {
+                return false;
+            }
+
+            $stockKey = (int) $warehouseProduct->product_id . ':' . (int) ($warehouseProduct->product_variation_id ?? 0);
+            $stock = $warehouseProductStockMap->get($stockKey);
+
+            return (float) ($stock->available_qty ?? 0) <= $reorderPoint;
+        })->count();
     @endphp
 
     <style>
@@ -326,9 +355,52 @@
         .warehouse-map-focus-bar__actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .warehouse-map-collapse-panel { margin-bottom: 8px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 18px; background: #fff; box-shadow: 0 14px 34px rgba(15, 23, 42, .05); }
         .warehouse-map-collapse-panel__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+        .warehouse-map-popup .modal-dialog { max-width: min(720px, calc(100vw - 32px)); }
+        .warehouse-map-popup--templates .modal-dialog { max-width: min(860px, calc(100vw - 32px)); }
+        .warehouse-map-popup .modal-content { border: 1px solid rgba(74, 85, 104, .18); border-radius: 16px; box-shadow: 0 24px 80px rgba(15, 20, 25, .18); color: #0f1419; overflow: hidden; }
+        .warehouse-map-popup .modal-header,
+        .warehouse-map-popup .modal-body,
+        .warehouse-map-popup .modal-footer { padding-left: 24px; padding-right: 24px; }
+        .warehouse-map-popup .modal-header { padding-top: 24px; }
+        .warehouse-map-popup .modal-title { color: #0f1419; font-size: 1.25rem; font-weight: 600; letter-spacing: 0; }
+        .warehouse-map-popup__metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .warehouse-map-popup__templates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .warehouse-map-popup .warehouse-map-stat,
+        .warehouse-map-popup .warehouse-template-card,
+        .warehouse-map-popup .warehouse-wizard-step,
+        .warehouse-map-popup .warehouse-system-note { background: #f1f3f5; border: 0; border-radius: 10px; box-shadow: none; }
         .warehouse-map-preview-list { display: grid; gap: 10px; }
         .warehouse-map-preview-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 10px 12px; }
         .warehouse-map-preview-item span { color: #334155; font-weight: 700; }
+        .warehouse-products-tab { display: grid; gap: 16px; }
+        .warehouse-products-tab__header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; padding: 20px; border: 1px solid rgba(74, 85, 104, .18); border-radius: 16px; background: #fff; }
+        .warehouse-products-tab__title { margin: 4px 0 6px; color: #0f1419; font-size: 22px; font-weight: 700; letter-spacing: 0; }
+        .warehouse-products-tab__hint { max-width: 760px; color: #4a5568; font-size: 14px; line-height: 1.55; }
+        .warehouse-products-tab__actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .warehouse-products-tab__actions .btn { border-radius: 10px; min-height: 42px; font-weight: 700; }
+        .warehouse-products-tab__stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+        .warehouse-products-tab__stat { padding: 16px; border: 1px solid rgba(74, 85, 104, .18); border-radius: 16px; background: #fff; }
+        .warehouse-products-tab__stat span { display: block; color: #4a5568; font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        .warehouse-products-tab__stat strong { display: block; margin-top: 8px; color: #0f1419; font-size: 24px; font-weight: 700; }
+        .warehouse-products-table-card { overflow: hidden; border: 1px solid rgba(74, 85, 104, .18); border-radius: 16px; background: #fff; }
+        .warehouse-products-table-card .table { margin: 0; color: #0f1419; }
+        .warehouse-products-table-card thead th { background: #f1f3f5; border-bottom: 1px solid rgba(74, 85, 104, .18); color: #4a5568; font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: uppercase; white-space: nowrap; }
+        .warehouse-products-table-card tbody td { border-color: rgba(74, 85, 104, .12); padding: 16px; vertical-align: top; }
+        .warehouse-products-table-card tbody tr:last-child td { border-bottom: 0; }
+        .warehouse-product-main { display: grid; gap: 6px; min-width: 260px; }
+        .warehouse-product-name { color: #0f1419; font-weight: 750; line-height: 1.35; }
+        .warehouse-product-meta,
+        .warehouse-product-subgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .warehouse-product-chip { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 5px 8px; border-radius: 10px; background: #f1f3f5; color: #4a5568; font-size: 12px; font-weight: 700; }
+        .warehouse-product-chip.is-primary { background: rgba(44, 94, 245, .1); color: #2c5ef5; }
+        .warehouse-product-chip.is-warning { background: rgba(245, 158, 11, .12); color: #92400e; }
+        .warehouse-product-chip.is-success { background: rgba(22, 163, 74, .1); color: #15803d; }
+        .warehouse-product-stock { display: grid; gap: 8px; min-width: 180px; }
+        .warehouse-product-stock__main { color: #0f1419; font-size: 20px; font-weight: 750; line-height: 1; }
+        .warehouse-product-stock__main span { color: #4a5568; font-size: 12px; font-weight: 600; }
+        .warehouse-product-detail-list { display: grid; gap: 7px; min-width: 210px; color: #4a5568; font-size: 13px; }
+        .warehouse-product-detail-list div { display: flex; justify-content: space-between; gap: 16px; }
+        .warehouse-product-detail-list strong { color: #0f1419; text-align: right; }
         .warehouse-hidden { display: none !important; }
 
         @media (max-width: 1480px) {
@@ -351,6 +423,9 @@
             .warehouse-map-sidebar__body,
             .warehouse-map-inspector__body { max-height: none; }
             .warehouse-map-init__templates { grid-template-columns: 1fr; }
+            .warehouse-map-popup__templates,
+            .warehouse-map-popup__metrics { grid-template-columns: 1fr; }
+            .warehouse-products-tab__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
         @media (max-width: 768px) {
@@ -360,6 +435,8 @@
             .warehouse-map-guide { grid-template-columns: 1fr; }
             .warehouse-map-viewport,
             .warehouse-map-editor.is-edit-mode .warehouse-map-viewport { min-height: 620px; height: 72vh; }
+            .warehouse-products-tab__stats { grid-template-columns: 1fr; }
+            .warehouse-products-tab__header { padding: 16px; }
         }
     </style>
 
@@ -493,21 +570,6 @@
                                         <div class="warehouse-settings-item"><span>Dùng sơ đồ</span><strong>{{ $warehouseSetting?->use_map ? 'Có' : 'Không' }}</strong></div>
                                     </div>
                                 </section>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="warehouse-panel {{ $activeTab === 'settings' ? 'is-active' : '' }}" data-panel-key="settings">
-                        <div class="warehouse-card">
-                            <div class="warehouse-card__header d-flex align-items-start justify-content-between gap-3 flex-wrap">
-                                <div>
-                                    <h2 class="warehouse-card__title">Cài đặt kho</h2>
-                                    <p class="warehouse-card__hint">Mở trong popup để chỉnh nhanh mà không phải rời khỏi màn hình sơ đồ.</p>
-                                </div>
-                                <button type="button" class="btn btn-primary" data-open-warehouse-settings><i class="ti ti-settings me-1"></i>Mở popup cài đặt</button>
-                            </div>
-                            <div class="warehouse-card__body">
-                                <div class="warehouse-system-note">Các tuỳ chọn sẽ được chỉnh trong popup. Sau khi lưu, hệ thống giữ nguyên trang hiện tại để bạn tiếp tục làm việc với cây vị trí hoặc sơ đồ.</div>
                             </div>
                         </div>
                     </div>
@@ -729,9 +791,9 @@
                                     </div>
 
                                     <div class="warehouse-map-init__actions mt-3">
-                                        <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'settings']) }}" class="btn btn-outline-secondary">
-                                            <i class="ti ti-settings me-1"></i>Đi tới cài đặt kho
-                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary" data-open-warehouse-settings>
+                                            <i class="ti ti-settings me-1"></i>Cài đặt kho
+                                        </button>
                                         <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'locations']) }}" class="btn btn-outline-secondary">
                                             <i class="ti ti-layout-grid me-1"></i>Thiết lập cây vị trí
                                         </a>
@@ -749,110 +811,6 @@
                                         @endif
                                     </div>
                                 </div>
-
-                                @if($selectedMap)
-                                    <div class="warehouse-map-collapse-panel warehouse-hidden" id="warehouse-map-info-panel">
-                                        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
-                                            <div>
-                                                <div class="warehouse-kicker">Thông tin kho</div>
-                                                <h3 class="warehouse-card__title mt-2">{{ $warehouse->name }}</h3>
-                                                <p class="warehouse-card__hint mb-0">{{ $warehouse->code }}{{ $warehouse->address ? ' - ' . $warehouse->address : '' }}</p>
-                                            </div>
-                                            <div class="warehouse-map-collapse-panel__grid flex-grow-1">
-                                                <div class="warehouse-map-stat"><span>Location</span><strong>{{ number_format($warehouse->locations_count) }}</strong></div>
-                                                <div class="warehouse-map-stat"><span>Sơ đồ</span><strong>{{ number_format($warehouse->maps->count()) }}</strong></div>
-                                                <div class="warehouse-map-stat"><span>Pallet</span><strong>{{ number_format($pallets->count()) }}</strong></div>
-                                                <div class="warehouse-map-stat"><span>Mapped</span><strong>{{ number_format($mappedLocationCount) }}</strong></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="warehouse-map-collapse-panel warehouse-hidden" id="warehouse-map-templates-panel">
-                                        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
-                                            <div>
-                                                <div class="warehouse-kicker">Mẫu kho có sẵn</div>
-                                                <h3 class="warehouse-card__title mt-2">Chọn mẫu để sinh nhanh cây vị trí</h3>
-                                                <p class="warehouse-card__hint mb-0">Bật panel này để xem các mẫu, rồi áp dụng vào cây hiện tại hoặc ghi đè nếu muốn.</p>
-                                            </div>
-                                            <div class="d-flex gap-2 flex-wrap">
-                                                <button type="button" class="btn btn-outline-secondary" data-map-toggle-panel="warehouse-map-templates-panel">Ẩn panel</button>
-                                            </div>
-                                        </div>
-                                        <div class="warehouse-card mt-3 warehouse-hidden" data-location-templates-panel>
-                                            <div class="warehouse-card__body p-0">
-                                                <div class="row g-3">
-                                                    @foreach($templates as $templateCode => $template)
-                                                        <div class="col-md-6 col-xl-4">
-                                                            <div class="warehouse-template-card">
-                                                                <div class="d-flex justify-content-between align-items-start gap-3">
-                                                                    <div>
-                                                                        <strong>{{ $template['name'] }}</strong>
-                                                                        <div class="text-muted small mt-1">{{ $template['description'] }}</div>
-                                                                    </div>
-                                                                    <span class="badge bg-light text-dark">{{ count(data_get($template, 'preview', [])) }} khu</span>
-                                                                </div>
-                                                                <ul class="warehouse-template-card__tree">
-                                                                    @foreach(array_slice(data_get($template, 'preview', []), 0, 5) as $previewNode)
-                                                                        <li>{{ data_get($previewNode, 'code') }} - {{ data_get($previewNode, 'name') }}</li>
-                                                                    @endforeach
-                                                                </ul>
-                                                                <div class="d-flex gap-2 flex-wrap">
-                                                                    <form method="POST" action="{{ route('inventory.warehouse.templates.apply', $warehouse) }}">
-                                                                        @csrf
-                                                                        <input type="hidden" name="template_code" value="{{ $templateCode }}">
-                                                                        <input type="hidden" name="mode" value="append">
-                                                                        <button type="submit" class="btn btn-outline-secondary btn-sm">Thêm vào cây hiện tại</button>
-                                                                    </form>
-                                                                    <form method="POST" action="{{ route('inventory.warehouse.templates.apply', $warehouse) }}">
-                                                                        @csrf
-                                                                        <input type="hidden" name="template_code" value="{{ $templateCode }}">
-                                                                        <input type="hidden" name="mode" value="overwrite">
-                                                                        <button type="submit" class="btn btn-primary btn-sm">Ghi đè cây hiện tại</button>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="warehouse-map-collapse-panel warehouse-hidden" id="warehouse-map-setup-panel">
-                                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-                                            <div>
-                                                <div class="warehouse-kicker">Lộ trình setup</div>
-                                                <h3 class="warehouse-card__title mt-2">Làm từng bước, không cần biết trước logic kho</h3>
-                                                <p class="warehouse-card__hint mb-0">Mở nhanh khi cần xem lại các bước cấu hình kho, cây vị trí, sơ đồ và pallet.</p>
-                                            </div>
-                                            <div class="warehouse-map-editor-state">{{ $isWarehouseSetupReady ? 'Đã sẵn sàng' : 'Chưa thiết lập xong' }}</div>
-                                        </div>
-                                        <div class="warehouse-map-guide mt-3">
-                                            @foreach($setupCheckpoints as $checkpoint)
-                                                <div class="warehouse-map-guide__item {{ $checkpoint['done'] ? 'is-done' : '' }}">
-                                                    <i class="{{ $checkpoint['key'] === 'settings' ? 'ti ti-settings' : ($checkpoint['key'] === 'locations' ? 'ti ti-layout-grid' : ($checkpoint['key'] === 'maps' ? 'ti ti-map-2' : 'ti ti-stack-2')) }}"></i>
-                                                    <div>
-                                                        <strong>{{ $checkpoint['title'] }}</strong>
-                                                        {{ $checkpoint['description'] }}
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                        <div class="warehouse-map-init__actions mt-3">
-                                            <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'settings']) }}" class="btn btn-outline-secondary">
-                                                <i class="ti ti-settings me-1"></i>Đi tới cài đặt kho
-                                            </a>
-                                            <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'locations']) }}" class="btn btn-outline-secondary">
-                                                <i class="ti ti-layout-grid me-1"></i>Thiết lập cây vị trí
-                                            </a>
-                                            @if($warehouseSetting?->use_pallet)
-                                                <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'pallets']) }}" class="btn btn-outline-success">
-                                                    <i class="ti ti-stack-2 me-1"></i>Thiết lập pallet
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endif
 
                                 <div
                                     class="warehouse-map-editor {{ $selectedMap ? 'is-view-mode' : 'is-init-mode' }}"
@@ -1174,9 +1132,14 @@
                                                         <button type="button" class="btn btn-outline-secondary warehouse-editor-action" data-map-toggle-panel="warehouse-map-info-panel">
                                                             <i class="ti ti-info-circle me-1"></i>Thông tin kho
                                                         </button>
-                                                        <button type="button" class="btn btn-outline-secondary warehouse-editor-action" data-map-toggle-panel="warehouse-map-setup-panel">
+                                                        <button type="button" class="btn btn-outline-secondary warehouse-editor-action" data-open-setup-wizard>
                                                             <i class="ti ti-route me-1"></i>Lộ trình setup
                                                         </button>
+                                                        @if(auth()->user()?->hasPermission('warehouse.edit'))
+                                                            <button type="button" class="btn btn-outline-secondary warehouse-editor-action" data-open-warehouse-settings>
+                                                                <i class="ti ti-settings me-1"></i>Cài đặt kho
+                                                            </button>
+                                                        @endif
                                                         @if(auth()->user()?->hasPermission('warehouse.locations.manage'))
                                                             <button type="button" class="btn btn-outline-primary warehouse-editor-action" data-map-toggle-panel="warehouse-map-templates-panel">
                                                                 <i class="ti ti-template me-1"></i>Mẫu kho có sẵn
@@ -1558,7 +1521,154 @@
                     </div>
 
                     <div class="warehouse-panel {{ $activeTab === 'products' ? 'is-active' : '' }}" data-panel-key="products">
-                        <div class="warehouse-empty-state">Phần sản phẩm trong kho đang dùng logic catalog hiện có. Có thể tách thành tab chi tiết hơn ở bước tiếp theo.</div>
+                        <section class="warehouse-products-tab">
+                            <div class="warehouse-products-tab__header">
+                                <div>
+                                    <div class="warehouse-kicker">Sản phẩm trong kho</div>
+                                    <h2 class="warehouse-products-tab__title">Danh sách sản phẩm đã gắn với {{ $warehouse->name }}</h2>
+                                    <div class="warehouse-products-tab__hint">
+                                        Dữ liệu lấy trực tiếp từ cấu hình sản phẩm kho và số dư tồn kho hiện tại, nên kho 9002 sẽ hiển thị các dòng đã có trong bảng inv_warehouse_products.
+                                    </div>
+                                </div>
+                                <div class="warehouse-products-tab__actions">
+                                    <a href="{{ route('inventory.warehouse-products.index', ['warehouse_id' => $warehouse->getKey(), 'status' => 'in_warehouse']) }}" class="btn btn-outline-secondary">
+                                        <i class="ti ti-layout-grid me-1"></i>Mở catalog
+                                    </a>
+                                    @if(auth()->user()?->hasPermission('warehouse.products.manage'))
+                                        <a href="{{ route('inventory.warehouse-products.index', ['warehouse_id' => $warehouse->getKey(), 'status' => 'all']) }}" class="btn btn-primary">
+                                            <i class="ti ti-plus me-1"></i>Gắn thêm sản phẩm
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="warehouse-products-tab__stats">
+                                <div class="warehouse-products-tab__stat">
+                                    <span>Tổng dòng cấu hình</span>
+                                    <strong>{{ number_format($warehouseProductRows->count()) }}</strong>
+                                </div>
+                                <div class="warehouse-products-tab__stat">
+                                    <span>Đang hoạt động</span>
+                                    <strong>{{ number_format((int) ($warehouse->active_warehouse_products_count ?? $warehouseProductRows->where('is_active', true)->count())) }}</strong>
+                                </div>
+                                <div class="warehouse-products-tab__stat">
+                                    <span>Tồn khả dụng</span>
+                                    <strong>{{ $formatWarehouseQty($warehouseProductStockTotals['available']) }}</strong>
+                                </div>
+                                <div class="warehouse-products-tab__stat">
+                                    <span>Dưới điểm đặt hàng</span>
+                                    <strong>{{ number_format($warehouseProductLowStockCount) }}</strong>
+                                </div>
+                            </div>
+
+                            @if($warehouseProductRows->isEmpty())
+                                <div class="warehouse-empty-state">
+                                    Kho này chưa có sản phẩm nào trong bảng cấu hình. Vào catalog để gắn sản phẩm cho kho trước.
+                                </div>
+                            @else
+                                <div class="warehouse-products-table-card">
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sản phẩm</th>
+                                                    <th>Tồn kho</th>
+                                                    <th>Vị trí / NCC</th>
+                                                    <th>Chính sách</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($warehouseProductRows as $warehouseProduct)
+                                                    @php
+                                                        $product = $warehouseProduct->product;
+                                                        $productName = data_get($product, 'name') ?: 'Sản phẩm #' . $warehouseProduct->product_id;
+                                                        $productSku = data_get($product, 'sku') ?: 'SKU chưa có';
+                                                        $variationName = data_get($warehouseProduct->productVariation, 'name')
+                                                            ?: data_get($warehouseProduct->productVariation, 'title');
+                                                        $stockKey = (int) $warehouseProduct->product_id . ':' . (int) ($warehouseProduct->product_variation_id ?? 0);
+                                                        $stock = $warehouseProductStockMap->get($stockKey);
+                                                        $availableQty = (float) ($stock->available_qty ?? 0);
+                                                        $quantity = (float) ($stock->quantity ?? 0);
+                                                        $reservedQty = (float) ($stock->reserved_qty ?? 0);
+                                                        $qcHoldQty = (float) ($stock->qc_hold_qty ?? 0);
+                                                        $reorderPointQty = (float) ($warehouseProduct->reorder_point_qty ?? 0);
+                                                        $isLowStock = $reorderPointQty > 0 && $availableQty <= $reorderPointQty;
+                                                        $defaultLocation = $warehouseProductLocationById->get((int) ($warehouseProduct->default_location_id ?? 0));
+                                                        $defaultLocationLabel = $defaultLocation
+                                                            ? (method_exists($defaultLocation, 'displayLabel') ? $defaultLocation->displayLabel() : trim(($defaultLocation->code ? $defaultLocation->code . ' - ' : '') . $defaultLocation->name))
+                                                            : null;
+                                                        $unitName = $warehouseProductUnitLabels->get((int) ($warehouseProduct->default_unit_id ?? 0));
+                                                        $supplierLabel = data_get($warehouseProduct->supplier, 'name') ?: data_get($warehouseProduct->supplierProduct, 'name');
+                                                        $ruleChips = collect([
+                                                            ($warehouseProduct->is_batch_required ?? false) ? 'Batch' : null,
+                                                            ($warehouseProduct->is_serial_required ?? false) ? 'Serial' : null,
+                                                            ($warehouseProduct->is_pallet_required ?? false) ? 'Pallet' : null,
+                                                            ($warehouseProduct->allow_negative_stock ?? false) ? 'Cho âm kho' : null,
+                                                        ])->filter();
+                                                    @endphp
+                                                    <tr>
+                                                        <td>
+                                                            <div class="warehouse-product-main">
+                                                                <div class="warehouse-product-name">{{ $productName }}</div>
+                                                                <div class="warehouse-product-meta">
+                                                                    <span class="warehouse-product-chip is-primary">{{ $productSku }}</span>
+                                                                    @if($variationName)
+                                                                        <span class="warehouse-product-chip">{{ $variationName }}</span>
+                                                                    @endif
+                                                                    <span class="warehouse-product-chip">ID {{ $warehouseProduct->product_id }}</span>
+                                                                    <span class="warehouse-product-chip {{ $warehouseProduct->is_active ? 'is-success' : 'is-warning' }}">
+                                                                        {{ $warehouseProduct->is_active ? 'Đang dùng' : 'Tạm tắt' }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="warehouse-product-stock">
+                                                                <div class="warehouse-product-stock__main">
+                                                                    {{ $formatWarehouseQty($availableQty) }}
+                                                                    <span>{{ $unitName ?: 'đơn vị' }}</span>
+                                                                </div>
+                                                                <div class="warehouse-product-subgrid">
+                                                                    <span class="warehouse-product-chip">Tổng {{ $formatWarehouseQty($quantity) }}</span>
+                                                                    <span class="warehouse-product-chip">Giữ {{ $formatWarehouseQty($reservedQty) }}</span>
+                                                                    @if($qcHoldQty > 0)
+                                                                        <span class="warehouse-product-chip is-warning">QC {{ $formatWarehouseQty($qcHoldQty) }}</span>
+                                                                    @endif
+                                                                    @if($isLowStock)
+                                                                        <span class="warehouse-product-chip is-warning">Cần nhập</span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="warehouse-product-detail-list">
+                                                                <div><span>Vị trí mặc định</span><strong>{{ $defaultLocationLabel ?: 'Chưa gắn' }}</strong></div>
+                                                                <div><span>Nhà cung cấp</span><strong>{{ $supplierLabel ?: 'Chưa chọn' }}</strong></div>
+                                                                <div><span>Đơn vị</span><strong>{{ $unitName ?: 'Chưa chọn' }}</strong></div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="warehouse-product-detail-list">
+                                                                <div><span>Min</span><strong>{{ $formatWarehouseQty($warehouseProduct->min_stock_qty ?? 0) }}</strong></div>
+                                                                <div><span>Max</span><strong>{{ $formatWarehouseQty($warehouseProduct->max_stock_qty ?? 0) }}</strong></div>
+                                                                <div><span>Reorder</span><strong>{{ $formatWarehouseQty($warehouseProduct->reorder_point_qty ?? 0) }}</strong></div>
+                                                                @if($ruleChips->isNotEmpty())
+                                                                    <div class="warehouse-product-subgrid">
+                                                                        @foreach($ruleChips as $ruleChip)
+                                                                            <span class="warehouse-product-chip">{{ $ruleChip }}</span>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @endif
+                        </section>
                     </div>
 
                     <div class="warehouse-panel {{ $activeTab === 'policies' ? 'is-active' : '' }}" data-panel-key="policies">
@@ -1626,7 +1736,7 @@
                                             <div class="warehouse-empty-state mb-3">
                                                 Kho này chưa bật pallet. Hãy bật trong cài đặt kho nếu muốn dùng pallet.
                                             </div>
-                                            <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'settings']) }}" class="btn btn-outline-primary w-100">Đi tới cài đặt kho</a>
+                                            <button type="button" class="btn btn-outline-primary w-100" data-open-warehouse-settings>Cài đặt kho</button>
                                         @endif
                                     </div>
                                 </section>
@@ -1710,8 +1820,88 @@
         </div>
     </div>
 
-    <div class="modal fade" id="warehouseSettingsModal" tabindex="-1" aria-hidden="true" data-warehouse-settings-modal>
-        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    @if($selectedMap)
+        <div class="modal fade warehouse-map-popup" id="warehouse-map-info-panel" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <div>
+                            <div class="warehouse-kicker">Thông tin kho</div>
+                            <h5 class="modal-title mb-1">{{ $warehouse->name }}</h5>
+                            <div class="text-muted small">{{ $warehouse->code }}{{ $warehouse->address ? ' - ' . $warehouse->address : '' }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-3">
+                        <div class="warehouse-map-popup__metrics">
+                            <div class="warehouse-map-stat"><span>Location</span><strong>{{ number_format($warehouse->locations_count) }}</strong></div>
+                            <div class="warehouse-map-stat"><span>Sơ đồ</span><strong>{{ number_format($warehouse->maps->count()) }}</strong></div>
+                            <div class="warehouse-map-stat"><span>Pallet</span><strong>{{ number_format($pallets->count()) }}</strong></div>
+                            <div class="warehouse-map-stat"><span>Mapped</span><strong>{{ number_format($mappedLocationCount) }}</strong></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade warehouse-map-popup warehouse-map-popup--templates" id="warehouse-map-templates-panel" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <div>
+                            <div class="warehouse-kicker">Mẫu kho có sẵn</div>
+                            <h5 class="modal-title mb-1">Chọn mẫu để sinh nhanh cây vị trí</h5>
+                            <div class="text-muted small">Áp dụng vào cây hiện tại hoặc ghi đè nếu muốn dựng lại từ mẫu chuẩn.</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-3">
+                        <div class="warehouse-map-popup__templates">
+                            @foreach($templates as $templateCode => $template)
+                                <div class="warehouse-template-card">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <strong>{{ $template['name'] }}</strong>
+                                            <div class="text-muted small mt-1">{{ $template['description'] }}</div>
+                                        </div>
+                                        <span class="badge bg-light text-dark">{{ count(data_get($template, 'preview', [])) }} khu</span>
+                                    </div>
+                                    <ul class="warehouse-template-card__tree">
+                                        @foreach(array_slice(data_get($template, 'preview', []), 0, 5) as $previewNode)
+                                            <li>{{ data_get($previewNode, 'code') }} - {{ data_get($previewNode, 'name') }}</li>
+                                        @endforeach
+                                    </ul>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <form method="POST" action="{{ route('inventory.warehouse.templates.apply', $warehouse) }}">
+                                            @csrf
+                                            <input type="hidden" name="template_code" value="{{ $templateCode }}">
+                                            <input type="hidden" name="mode" value="append">
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm">Thêm vào cây hiện tại</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('inventory.warehouse.templates.apply', $warehouse) }}">
+                                            @csrf
+                                            <input type="hidden" name="template_code" value="{{ $templateCode }}">
+                                            <input type="hidden" name="mode" value="overwrite">
+                                            <button type="submit" class="btn btn-primary btn-sm">Ghi đè cây hiện tại</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="modal fade warehouse-map-popup" id="warehouseSettingsModal" tabindex="-1" aria-hidden="true" data-warehouse-settings-modal>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
                     <div>
@@ -1749,8 +1939,8 @@
         </div>
     </div>
 
-    <div class="modal fade" id="warehouseSetupWizardModal" tabindex="-1" aria-hidden="true" data-setup-wizard-modal>
-        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal fade warehouse-map-popup" id="warehouseSetupWizardModal" tabindex="-1" aria-hidden="true" data-setup-wizard-modal>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content warehouse-wizard-modal">
                 <div class="modal-header border-0 pb-0">
                     <div>
@@ -1796,9 +1986,15 @@
                                             </span>
                                         </div>
                                         <div class="d-flex gap-2 flex-wrap mt-3">
-                                            <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => $checkpoint['key'] === 'pallets' ? 'pallets' : $checkpoint['key']]) }}" class="btn btn-sm {{ $checkpoint['done'] ? 'btn-outline-secondary' : 'btn-primary' }}">
-                                                Đi tới bước này
-                                            </a>
+                                            @if($checkpoint['key'] === 'settings')
+                                                <button type="button" class="btn btn-sm {{ $checkpoint['done'] ? 'btn-outline-secondary' : 'btn-primary' }}" data-open-warehouse-settings>
+                                                    Đi tới bước này
+                                                </button>
+                                            @else
+                                                <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => $checkpoint['key'] === 'pallets' ? 'pallets' : $checkpoint['key']]) }}" class="btn btn-sm {{ $checkpoint['done'] ? 'btn-outline-secondary' : 'btn-primary' }}">
+                                                    Đi tới bước này
+                                                </a>
+                                            @endif
                                             @if($checkpoint['key'] === 'pallets' && ! ($warehouseSetting?->use_pallet ?? false))
                                                 <button type="button" class="btn btn-sm btn-outline-success" disabled>Tùy chọn</button>
                                             @endif
@@ -1816,7 +2012,7 @@
                     <div class="text-muted small">User mới chỉ cần bấm theo gợi ý, không cần biết trước nghiệp vụ kho.</div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Để sau</button>
-                        <a href="{{ route('inventory.warehouse.show', ['warehouse' => $warehouse->getKey(), 'tab' => 'settings']) }}" class="btn btn-primary">Bắt đầu bước tiếp theo</a>
+                        <button type="button" class="btn btn-primary" data-open-warehouse-settings>Bắt đầu bước tiếp theo</button>
                     </div>
                 </div>
             </div>

@@ -119,6 +119,30 @@ class WarehouseController extends BaseController
             ->orderBy('code')
             ->get(['id', 'parent_id', 'code', 'name', 'path', 'level', 'type', 'status', 'description']);
 
+        $warehouseProductStock = DB::table('inv_stock_balances')
+            ->selectRaw('product_id, COALESCE(product_variation_id, 0) as product_variation_id')
+            ->selectRaw('SUM(quantity) as quantity')
+            ->selectRaw('SUM(available_qty) as available_qty')
+            ->selectRaw('SUM(reserved_qty) as reserved_qty')
+            ->selectRaw('SUM(qc_hold_qty) as qc_hold_qty')
+            ->selectRaw('SUM(damaged_qty) as damaged_qty')
+            ->selectRaw('SUM(rejected_qty) as rejected_qty')
+            ->where('warehouse_id', $warehouse->getKey())
+            ->groupBy('product_id')
+            ->groupByRaw('COALESCE(product_variation_id, 0)')
+            ->get()
+            ->keyBy(fn ($row): string => (int) $row->product_id . ':' . (int) $row->product_variation_id);
+
+        $warehouseProductUnitIds = $warehouse->warehouseProducts
+            ->pluck('default_unit_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $warehouseProductUnitLabels = $warehouseProductUnitIds->isNotEmpty()
+            ? DB::table('inv_units')->whereIn('id', $warehouseProductUnitIds)->pluck('name', 'id')
+            : collect();
+
         $suppliers = Supplier::query()
             ->orderBy('name')
             ->get(['id', 'code', 'name'])
@@ -137,7 +161,7 @@ class WarehouseController extends BaseController
 
         $this->pageTitle($warehouse->name);
 
-        return view('plugins/inventory::warehouse.show', array_merge(compact('warehouse', 'locations', 'suppliers', 'settings'), $viewData));
+        return view('plugins/inventory::warehouse.show', array_merge(compact('warehouse', 'locations', 'suppliers', 'settings', 'warehouseProductStock', 'warehouseProductUnitLabels'), $viewData));
     }
 
     public function updateSettings(Warehouse $warehouse, Request $request, WarehouseSettingService $service)

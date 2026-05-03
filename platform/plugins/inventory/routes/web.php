@@ -218,6 +218,12 @@ AdminHelper::registerRoutes(function () {
                 'permission' => 'packing.create',
             ]);
 
+            Route::get('/exports/{export}/preview', [
+                'uses' => PackingController::class . '@exportPreview',
+                'as' => 'export-preview',
+                'permission' => 'packing.create',
+            ]);
+
             Route::get('/edit/{packing}', [
                 'uses' => PackingController::class . '@edit',
                 'as' => 'edit',

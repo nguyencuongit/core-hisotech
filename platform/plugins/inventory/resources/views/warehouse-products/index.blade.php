@@ -17,79 +17,76 @@
 
     <style>
         .warehouse-products-page {
-            position: relative;
-            margin: -1.25rem;
+            --gl-primary: #0F1419;
+            --gl-secondary: #4A5568;
+            --gl-tertiary: #2C5EF5;
+            --gl-neutral: #F1F3F5;
+            --gl-surface: #FFFFFF;
+            --gl-border: rgba(74, 85, 104, .18);
+            color: var(--gl-primary);
+            font-family: Geist, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: -1rem;
             min-height: calc(100vh - 56px);
-            padding: 28px;
-            background:
-                radial-gradient(circle at top left, rgba(99, 102, 241, .10), transparent 30%),
-                radial-gradient(circle at top right, rgba(168, 85, 247, .08), transparent 26%),
-                linear-gradient(180deg, #f8fafc 0%, #f5f7fb 100%);
+            padding: 24px;
+            background: var(--gl-neutral);
         }
 
         .warehouse-products-shell {
             display: grid;
-            gap: 18px;
+            gap: 24px;
         }
 
         .warehouse-products-hero,
         .warehouse-products-card {
-            position: relative;
-            z-index: 1;
-            background: rgba(255, 255, 255, .92);
-            border: 1px solid rgba(148, 163, 184, .16);
-            border-radius: 24px;
-            box-shadow: 0 18px 50px rgba(15, 23, 42, .06);
-            backdrop-filter: blur(14px);
+            background: var(--gl-surface);
+            border: 1px solid var(--gl-border);
+            border-radius: 16px;
+            box-shadow: none;
         }
 
         .warehouse-products-hero {
             padding: 24px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .warehouse-products-hero::after {
-            content: '';
-            position: absolute;
-            right: -40px;
-            top: -40px;
-            width: 160px;
-            height: 160px;
-            background: radial-gradient(circle, rgba(99, 102, 241, .18), transparent 68%);
-            pointer-events: none;
         }
 
         .warehouse-products-eyebrow {
-            color: #6366f1;
+            color: var(--gl-secondary);
+            font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
             font-size: .75rem;
-            font-weight: 700;
-            letter-spacing: .12em;
+            font-weight: 600;
+            letter-spacing: 0;
             text-transform: uppercase;
         }
 
         .warehouse-products-title {
-            color: #0f172a;
-            font-size: 1.65rem;
-            font-weight: 800;
-            letter-spacing: -.03em;
-            margin: 6px 0 8px;
+            color: var(--gl-primary);
+            font-size: 2.25rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            line-height: 1.1;
+            margin: 4px 0 10px;
         }
 
         .warehouse-products-subtitle {
-            color: #64748b;
+            color: var(--gl-secondary);
+            font-size: .95rem;
+            line-height: 1.55;
             max-width: 54rem;
         }
 
         .warehouse-products-status-pill {
             align-items: center;
-            background: rgba(99, 102, 241, .08);
-            border-radius: 999px;
-            color: #4338ca;
+            background: var(--gl-neutral);
+            border: 1px solid var(--gl-border);
+            border-radius: 10px;
+            color: var(--gl-primary);
             display: inline-flex;
             gap: 8px;
-            padding: 8px 14px;
-            font-weight: 700;
+            padding: 10px 14px;
+            font-weight: 600;
+        }
+
+        .warehouse-products-status-pill i {
+            color: var(--gl-tertiary);
         }
 
         .warehouse-products-hero-actions {
@@ -100,37 +97,33 @@
         }
 
         .warehouse-products-metric {
-            border: 1px solid rgba(148, 163, 184, .16);
-            border-radius: 22px;
-            padding: 16px 18px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, .98) 0%, rgba(248, 250, 252, .96) 100%);
-            box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
-            transition: transform .18s ease, box-shadow .18s ease;
-        }
-
-        .warehouse-products-metric:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 28px rgba(15, 23, 42, .08);
+            background: var(--gl-surface);
+            border: 1px solid var(--gl-border);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: none;
         }
 
         .warehouse-products-metric span {
-            color: #64748b;
+            color: var(--gl-secondary);
             display: block;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .06em;
+            font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: .75rem;
+            font-weight: 500;
+            letter-spacing: 0;
             text-transform: uppercase;
         }
 
         .warehouse-products-metric strong {
-            color: #0f172a;
+            color: var(--gl-primary);
             display: block;
-            font-size: 1.5rem;
-            margin-top: 6px;
+            font-size: 1.65rem;
+            font-weight: 600;
+            margin-top: 8px;
         }
 
         .warehouse-products-card {
-            padding: 18px;
+            padding: 24px;
         }
 
         .warehouse-products-modal {
@@ -152,19 +145,48 @@
         .warehouse-products-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .warehouse-products-tabs .btn {
-            border-radius: 999px;
-            padding: .68rem 1rem;
-            transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+        .warehouse-products-page .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            min-height: 44px;
+            padding: 10px 16px;
         }
 
-        .warehouse-products-tabs .btn:hover,
-        .warehouse-products-filter .btn:hover,
-        .warehouse-products-hero-actions .btn:hover {
-            transform: translateY(-1px);
+        .warehouse-products-page .btn-primary {
+            background: var(--gl-tertiary);
+            border-color: var(--gl-tertiary);
+            color: #fff;
+        }
+
+        .warehouse-products-page .btn-primary:hover,
+        .warehouse-products-page .btn-primary:focus {
+            background: #244bd2;
+            border-color: #244bd2;
+            color: #fff;
+        }
+
+        .warehouse-products-tabs .btn-primary {
+            background: var(--gl-primary);
+            border-color: var(--gl-primary);
+            color: #fff;
+        }
+
+        .warehouse-products-page .btn-outline-secondary,
+        .warehouse-products-page .btn-outline-primary,
+        .warehouse-products-page .btn-light {
+            background: var(--gl-surface);
+            border-color: var(--gl-border);
+            color: var(--gl-primary);
+        }
+
+        .warehouse-products-page .btn-outline-secondary:hover,
+        .warehouse-products-page .btn-outline-primary:hover,
+        .warehouse-products-page .btn-light:hover {
+            border-color: rgba(15, 20, 25, .38);
+            color: var(--gl-primary);
         }
 
         .warehouse-products-filter {
@@ -176,28 +198,29 @@
 
         .warehouse-products-filter .form-control,
         .warehouse-products-filter .form-select {
-            border-radius: 16px;
+            border-color: var(--gl-border);
+            border-radius: 10px;
+            color: var(--gl-primary);
             min-height: 44px;
-            border-color: rgba(148, 163, 184, .28);
             box-shadow: none;
         }
 
         .warehouse-products-filter .form-control:focus,
         .warehouse-products-filter .form-select:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 .2rem rgba(99, 102, 241, .12);
+            border-color: var(--gl-tertiary);
+            box-shadow: 0 0 0 3px rgba(44, 94, 245, .12);
         }
 
         .warehouse-products-filter .btn {
             min-height: 44px;
-            border-radius: 16px;
             padding-inline: 1rem;
         }
 
         .warehouse-products-table-wrap {
             overflow: hidden;
-            border-radius: 20px;
-            border: 1px solid rgba(148, 163, 184, .16);
+            border: 1px solid var(--gl-border);
+            border-radius: 16px;
+            background: var(--gl-surface);
         }
 
         .warehouse-products-table {
@@ -205,39 +228,41 @@
         }
 
         .warehouse-products-table thead th {
-            background: #f8fafc;
-            border-bottom: 1px solid rgba(148, 163, 184, .18) !important;
-            color: #64748b;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .08em;
+            background: var(--gl-neutral);
+            border-bottom: 1px solid var(--gl-border) !important;
+            color: var(--gl-secondary);
+            font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: .75rem;
+            font-weight: 500;
+            letter-spacing: 0;
             text-transform: uppercase;
             padding-block: 14px;
             white-space: nowrap;
         }
 
         .warehouse-products-table tbody tr {
-            transition: background-color .18s ease, transform .18s ease;
+            transition: background-color .16s ease;
         }
 
         .warehouse-products-table tbody tr:hover {
-            background: rgba(99, 102, 241, .025);
+            background: rgba(241, 243, 245, .72);
         }
 
         .warehouse-products-table td {
+            border-color: rgba(74, 85, 104, .12);
             vertical-align: top;
             padding-block: 18px;
         }
 
         .warehouse-product-name {
-            color: #0f172a;
-            font-weight: 800;
+            color: var(--gl-primary);
             font-size: 1rem;
-            letter-spacing: -.01em;
+            font-weight: 600;
+            letter-spacing: 0;
         }
 
         .warehouse-product-meta {
-            color: #64748b;
+            color: var(--gl-secondary);
             font-size: 12px;
             line-height: 1.65;
             margin-top: 4px;
@@ -249,11 +274,10 @@
         }
 
         .warehouse-assignment {
-            border: 1px solid rgba(148, 163, 184, .16);
-            border-radius: 18px;
+            background: var(--gl-neutral);
+            border: 0;
+            border-radius: 10px;
             padding: 12px 14px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .94));
-            box-shadow: 0 8px 20px rgba(15, 23, 42, .03);
         }
 
         .warehouse-assignment + .warehouse-assignment {
@@ -261,12 +285,12 @@
         }
 
         .warehouse-assignment-title {
-            font-weight: 800;
-            color: #0f172a;
+            color: var(--gl-primary);
+            font-weight: 600;
         }
 
         .warehouse-assignment-meta {
-            color: #64748b;
+            color: var(--gl-secondary);
             font-size: 12px;
             margin-top: 5px;
             line-height: 1.6;
@@ -279,23 +303,23 @@
         }
 
         .warehouse-products-modal-list {
-            max-height: 420px;
-            overflow: auto;
             display: grid;
             gap: 10px;
+            max-height: 420px;
+            overflow: auto;
         }
 
         .warehouse-products-modal-item {
             align-items: center;
-            border: 1px solid rgba(148, 163, 184, .18);
-            border-radius: 18px;
+            background: var(--gl-surface);
+            border: 1px solid var(--gl-border);
+            border-radius: 10px;
             display: flex;
             gap: 12px;
             justify-content: space-between;
             padding: 12px 14px;
-            background: #fff;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, .04);
-            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            box-shadow: none;
+            transition: background-color .16s ease, border-color .16s ease;
             width: 100%;
         }
 
@@ -305,20 +329,17 @@
         }
 
         .warehouse-products-modal-action:not(:disabled):hover {
-            background: #f8fafc;
-            border-color: rgba(99, 102, 241, .35);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, .07);
+            background: var(--gl-neutral);
+            border-color: rgba(44, 94, 245, .32);
         }
 
         .warehouse-products-modal-action.is-moving {
             opacity: .35;
-            transform: translateX(16px);
         }
 
         .warehouse-products-modal-action.is-changed {
-            border-color: rgba(37, 99, 235, .32);
-            background: rgba(37, 99, 235, .04);
+            background: rgba(44, 94, 245, .06);
+            border-color: rgba(44, 94, 245, .32);
         }
 
         .warehouse-products-modal-action:disabled {
@@ -327,31 +348,31 @@
         }
 
         .warehouse-products-empty {
-            border: 1px dashed rgba(148, 163, 184, .28);
-            border-radius: 20px;
+            background: var(--gl-neutral);
+            border: 1px dashed rgba(74, 85, 104, .26);
+            border-radius: 16px;
             padding: 42px 20px;
             text-align: center;
-            color: #64748b;
-            background: rgba(248, 250, 252, .65);
+            color: var(--gl-secondary);
         }
 
         .warehouse-products-empty i {
-            color: #6366f1;
+            color: var(--gl-tertiary);
             display: block;
             font-size: 2rem;
             margin-bottom: 10px;
         }
 
         .warehouse-products-quantity {
-            color: #0f172a;
+            color: var(--gl-primary);
             font-size: 1.1rem;
-            font-weight: 800;
+            font-weight: 600;
         }
 
         .warehouse-products-warehouse-count {
-            color: #0f172a;
+            color: var(--gl-primary);
             font-size: 1.35rem;
-            font-weight: 800;
+            font-weight: 600;
         }
 
         .warehouse-products-horizontal-stats {
@@ -372,21 +393,20 @@
 
         .warehouse-products-warehouse-button {
             align-items: flex-start;
-            background: rgba(255, 255, 255, .88);
-            border: 1px solid rgba(148, 163, 184, .18);
-            border-radius: 18px;
+            background: var(--gl-neutral);
+            border: 1px solid transparent;
+            border-radius: 10px;
             color: inherit;
             display: block;
             padding: 12px 14px;
             text-align: left;
-            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            transition: background-color .16s ease, border-color .16s ease;
             width: 100%;
         }
 
         .warehouse-products-warehouse-button:hover {
-            border-color: rgba(99, 102, 241, .34);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, .06);
-            transform: translateY(-1px);
+            background: var(--gl-surface);
+            border-color: rgba(44, 94, 245, .32);
         }
 
         .warehouse-products-warehouse-button .warehouse-products-warehouse-count {
@@ -400,7 +420,7 @@
         }
 
         .warehouse-products-fade-in {
-            animation: warehouseProductsFadeIn .36s ease both;
+            animation: none;
         }
 
         .warehouse-products-fade-in.delay-1 { animation-delay: .05s; }
@@ -408,15 +428,54 @@
         .warehouse-products-fade-in.delay-3 { animation-delay: .15s; }
         .warehouse-products-fade-in.delay-4 { animation-delay: .20s; }
 
-        @keyframes warehouseProductsFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .warehouse-products-page .badge {
+            border-radius: 999px;
+            font-weight: 600;
+            letter-spacing: 0;
+            padding: .45rem .75rem;
+        }
+
+        .warehouse-products-page .badge.bg-primary-lt,
+        .warehouse-products-page .badge.text-primary {
+            background: rgba(44, 94, 245, .10) !important;
+            color: var(--gl-tertiary) !important;
+        }
+
+        .warehouse-products-page .badge.bg-success-lt,
+        .warehouse-products-page .badge.bg-warning-lt,
+        .warehouse-products-page .badge.bg-danger-lt,
+        .warehouse-products-page .badge.bg-secondary-lt,
+        .warehouse-products-page .badge.text-success,
+        .warehouse-products-page .badge.text-warning,
+        .warehouse-products-page .badge.text-danger,
+        .warehouse-products-page .badge.text-secondary {
+            background: var(--gl-neutral) !important;
+            color: var(--gl-secondary) !important;
+        }
+
+        .warehouse-products-page .modal-content {
+            border: 1px solid var(--gl-border) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 24px 80px rgba(15, 20, 25, .18) !important;
+            color: var(--gl-primary);
+        }
+
+        .warehouse-products-page .modal-title {
+            color: var(--gl-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+
+        .warehouse-products-page .modal-header,
+        .warehouse-products-page .modal-body,
+        .warehouse-products-page .modal-footer {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        .warehouse-products-page .modal-xl {
+            max-width: min(980px, calc(100vw - 32px));
         }
 
         @media (max-width: 991.98px) {
@@ -426,11 +485,18 @@
 
             .warehouse-products-hero,
             .warehouse-products-card {
-                border-radius: 20px;
+                border-radius: 16px;
             }
 
             .warehouse-products-hero-actions {
                 justify-content: flex-start;
+            }
+
+            .warehouse-products-filter,
+            .warehouse-products-filter .form-control,
+            .warehouse-products-filter .form-select,
+            .warehouse-products-filter .btn {
+                width: 100% !important;
             }
         }
     </style>
@@ -564,6 +630,7 @@
                                     @php
                                         $warehouseProducts = $product->getRelation('inventoryWarehouseProducts');
                                         $allWarehouseProducts = $product->getRelation('allInventoryWarehouseProducts');
+                                        $stockSummary = $product->getRelation('inventoryStockSummary');
                                         $assignedWarehouseIds = $allWarehouseProducts->pluck('warehouse_id')->map(fn ($id) => (int) $id)->all();
                                         $warehouseProductsPayload = $allWarehouseProducts->map(function ($warehouseProduct): array {
                                             return [
@@ -582,6 +649,18 @@
                                         } elseif (is_object($stockStatus) && method_exists($stockStatus, 'getValue')) {
                                             $stockStatus = $stockStatus->getValue();
                                         }
+
+                                        $catalogQuantity = (float) ($product->quantity ?? 0);
+                                        $inventoryQuantity = (float) ($stockSummary->inventory_quantity ?? 0);
+                                        $inventoryAvailableQuantity = (float) ($stockSummary->inventory_available_qty ?? 0);
+                                        $inventoryReservedQuantity = (float) ($stockSummary->inventory_reserved_qty ?? 0);
+                                        $inventoryAverageCost = (float) ($stockSummary->inventory_average_cost ?? 0);
+                                        $inventoryLastUnitCost = (float) ($stockSummary->inventory_last_unit_cost ?? 0);
+                                        $displayCost = $product->cost_per_item !== null
+                                            ? (float) $product->cost_per_item
+                                            : ($inventoryAverageCost > 0 ? $inventoryAverageCost : ($inventoryLastUnitCost > 0 ? $inventoryLastUnitCost : null));
+                                        $displayCostSource = $product->cost_per_item !== null ? 'TMĐT' : ($displayCost !== null ? 'Từ tồn kho' : null);
+                                        $inventoryStockLabel = $warehouseId ? 'Tồn kho này' : 'Tồn kho';
                                     @endphp
                                     <tr>
                                         <td style="min-width: 320px">
@@ -597,16 +676,26 @@
                                             </div>
                                             <div class="warehouse-products-horizontal-stats mt-3">
                                                 <div class="warehouse-products-horizontal-stat">
-                                                    <div class="warehouse-product-meta">{{ trans('plugins/inventory::inventory.warehouse_product.ecommerce_stock') }}</div>
-                                                    <div class="warehouse-products-quantity">{{ number_format((float) $product->quantity) }}</div>
+                                                    <div class="warehouse-product-meta">{{ $inventoryStockLabel }}</div>
+                                                    <div class="warehouse-products-quantity">{{ number_format($inventoryAvailableQuantity) }}</div>
+                                                    <div class="warehouse-product-meta">
+                                                        Tổng {{ number_format($inventoryQuantity) }}
+                                                        @if($inventoryReservedQuantity > 0)
+                                                            <span class="mx-1">•</span>Giữ {{ number_format($inventoryReservedQuantity) }}
+                                                        @endif
+                                                        <span class="mx-1">•</span>TMĐT {{ number_format($catalogQuantity) }}
+                                                    </div>
                                                 </div>
                                                 <div class="warehouse-products-horizontal-stat">
-                                                    <div class="warehouse-product-meta">{{ trans('plugins/inventory::inventory.warehouse_product.stock_status') }}</div>
+                                                    <div class="warehouse-product-meta">Trạng thái TMĐT</div>
                                                     <span class="badge bg-primary-lt text-primary warehouse-assignment-badge">{{ $stockStatus ?: '-' }}</span>
                                                 </div>
                                                 <div class="warehouse-products-horizontal-stat">
                                                     <div class="warehouse-product-meta">{{ trans('plugins/inventory::inventory.warehouse_product.cost') }}</div>
-                                                    <div class="fw-semibold text-dark">{{ $product->cost_per_item !== null ? number_format((float) $product->cost_per_item) : '-' }}</div>
+                                                    <div class="fw-semibold text-dark">{{ $displayCost !== null ? number_format($displayCost) : '-' }}</div>
+                                                    @if($displayCostSource)
+                                                        <div class="warehouse-product-meta">{{ $displayCostSource }}</div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>

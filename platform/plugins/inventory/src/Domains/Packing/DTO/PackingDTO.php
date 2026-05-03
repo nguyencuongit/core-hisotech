@@ -112,7 +112,7 @@ class PackingDTO
             $productId = self::nullableInteger(Arr::get($item, 'product_id'));
             $packedQty = self::nullableDecimal(Arr::get($item, 'packed_qty')) ?? 0.0;
 
-            if (! $exportItemId && ! $productId && $packedQty <= 0) {
+            if ($packedQty <= 0) {
                 continue;
             }
 

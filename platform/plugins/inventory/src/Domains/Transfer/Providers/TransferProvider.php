@@ -30,7 +30,7 @@ class TransferProvider extends ServiceProvider
                     'name' => 'plugins/inventory::inventory.transfer.name',
                     'icon' => 'ti ti-arrows-left-right',
                     'url' => route('inventory.transfer.index'),
-                    'permissions' => ['Transfer.index'],
+                    'permissions' => ['transfer.index'],
                 ]);
         });
 

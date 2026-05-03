@@ -4,6 +4,7 @@ namespace Botble\Inventory\Domains\Warehouse\Services;
 
 use Botble\Inventory\Domains\GoodsReceipt\Models\ReceiptStorageItem;
 use Botble\Inventory\Domains\Packing\Models\PackingListItem;
+use Botble\Inventory\Domains\Transfer\Models\InternalTransferItem;
 use Botble\Inventory\Domains\Warehouse\Models\Pallet;
 use Botble\Inventory\Domains\Warehouse\Models\StockBalance;
 use Botble\Inventory\Domains\Warehouse\Models\StockTransaction;
@@ -184,6 +185,162 @@ class StockLedgerService
         });
     }
 
+    public function postInternalTransferOut(InternalTransferItem $item): void
+    {
+        if (! $item->stock_balance_id || (float) $item->requested_qty <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($item): void {
+            $item->loadMissing('transfer');
+
+            if ($this->hasStockTransaction('internal_transfer_out', 'internal_transfer_item', (string) $item->getKey())) {
+                return;
+            }
+
+            $transfer = $item->transfer;
+            $balance = StockBalance::query()
+                ->lockForUpdate()
+                ->find($item->stock_balance_id);
+
+            if (! $balance || ! $transfer || (int) $balance->warehouse_id !== (int) $transfer->from_warehouse_id) {
+                throw ValidationException::withMessages([
+                    'items' => 'Tồn kho nguồn của phiếu chuyển không hợp lệ.',
+                ]);
+            }
+
+            $qty = (float) $item->requested_qty;
+            $beforeQty = (float) ($balance->quantity ?? 0);
+            $beforeAvailable = (float) ($balance->available_qty ?? 0);
+
+            if ($beforeAvailable + 0.0001 < $qty) {
+                throw ValidationException::withMessages([
+                    'items' => sprintf('Tồn khả dụng của %s chỉ còn %.4f, không đủ xuất chuyển %.4f.', $item->product_name ?: $item->product_id, $beforeAvailable, $qty),
+                ]);
+            }
+
+            $balance->quantity = max($beforeQty - $qty, 0);
+            $balance->available_qty = max($beforeAvailable - $qty, 0);
+            $balance->dimension_key = $this->dimensionKey($balance);
+            $balance->last_movement_at = now();
+            $balance->updated_at = now();
+            $balance->save();
+
+            StockTransaction::query()->create([
+                'stock_balance_id' => $balance->getKey(),
+                'transaction_code' => $this->nextTransactionCode(),
+                'type' => 'internal_transfer_out',
+                'reference_type' => 'internal_transfer_item',
+                'reference_id' => (string) $item->getKey(),
+                'reference_item_id' => (string) $item->transfer_id,
+                'product_id' => $item->product_id,
+                'product_variation_id' => $item->product_variation_id,
+                'warehouse_id' => $balance->warehouse_id,
+                'warehouse_location_id' => $item->from_location_id ?: $balance->warehouse_location_id,
+                'pallet_id' => $item->pallet_id ?: $balance->pallet_id,
+                'storage_item_id' => null,
+                'goods_receipt_id' => null,
+                'goods_receipt_item_id' => null,
+                'goods_receipt_batch_id' => $item->goods_receipt_batch_id ?: $balance->goods_receipt_batch_id,
+                'batch_id' => $item->batch_id ?: $balance->batch_id,
+                'quantity' => -1 * $qty,
+                'reserved_delta' => 0,
+                'available_delta' => -1 * $qty,
+                'unit_cost' => (float) ($balance->last_unit_cost ?? $item->unit_price ?? 0),
+                'before_qty' => $beforeQty,
+                'after_qty' => (float) $balance->quantity,
+                'note' => $item->note,
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+            ]);
+        });
+    }
+
+    public function postInternalTransferIn(InternalTransferItem $item): void
+    {
+        if ((float) $item->requested_qty <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($item): void {
+            $item->loadMissing('transfer');
+
+            if ($this->hasStockTransaction('internal_transfer_in', 'internal_transfer_item', (string) $item->getKey())) {
+                return;
+            }
+
+            $transfer = $item->transfer;
+
+            if (! $transfer || ! $item->to_location_id) {
+                throw ValidationException::withMessages([
+                    'items' => 'Cần chọn vị trí nhập kho đích trước khi hoàn tất chuyển kho.',
+                ]);
+            }
+
+            $receivedQty = (float) $item->received_qty;
+
+            if ($receivedQty <= 0 && (float) ($item->shortage_qty ?: 0) <= 0 && (float) ($item->damaged_qty ?: 0) <= 0) {
+                $receivedQty = (float) $item->requested_qty;
+            }
+            $damagedQty = min(max((float) ($item->damaged_qty ?: 0), 0), $receivedQty);
+            $qty = max($receivedQty - $damagedQty, 0);
+            $target = StockBalance::query()->firstOrNew([
+                'warehouse_id' => $transfer->to_warehouse_id,
+                'warehouse_location_id' => $item->to_location_id,
+                'pallet_id' => $item->to_pallet_id ?: null,
+                'product_id' => $item->product_id,
+                'product_variation_id' => $item->product_variation_id,
+                'goods_receipt_batch_id' => $item->goods_receipt_batch_id,
+            ]);
+
+            $beforeQty = (float) ($target->quantity ?? 0);
+            $unitCost = (float) ($item->unit_price ?? $target->last_unit_cost ?? 0);
+
+            $target->batch_id = $item->batch_id ?: $target->batch_id;
+            $target->goods_receipt_batch_id = $item->goods_receipt_batch_id;
+            $target->quantity = $beforeQty + $qty;
+            $target->available_qty = (float) ($target->available_qty ?? 0) + $qty;
+            $target->reserved_qty = (float) ($target->reserved_qty ?? 0);
+            $target->qc_hold_qty = (float) ($target->qc_hold_qty ?? 0);
+            $target->damaged_qty = (float) ($target->damaged_qty ?? 0) + $damagedQty;
+            $target->rejected_qty = (float) ($target->rejected_qty ?? 0);
+            $target->last_unit_cost = $unitCost;
+            $target->average_cost = $this->resolveAverageCost($target, $beforeQty, $unitCost, $qty);
+            $target->dimension_key = $this->dimensionKey($target);
+            $target->last_movement_at = now();
+            $target->updated_at = now();
+            $target->save();
+
+            StockTransaction::query()->create([
+                'stock_balance_id' => $target->getKey(),
+                'transaction_code' => $this->nextTransactionCode(),
+                'type' => 'internal_transfer_in',
+                'reference_type' => 'internal_transfer_item',
+                'reference_id' => (string) $item->getKey(),
+                'reference_item_id' => (string) $item->transfer_id,
+                'product_id' => $item->product_id,
+                'product_variation_id' => $item->product_variation_id,
+                'warehouse_id' => $transfer->to_warehouse_id,
+                'warehouse_location_id' => $item->to_location_id,
+                'pallet_id' => $item->to_pallet_id ?: null,
+                'storage_item_id' => null,
+                'goods_receipt_id' => null,
+                'goods_receipt_item_id' => null,
+                'goods_receipt_batch_id' => $item->goods_receipt_batch_id,
+                'batch_id' => $item->batch_id,
+                'quantity' => $qty,
+                'reserved_delta' => 0,
+                'available_delta' => $qty,
+                'unit_cost' => $unitCost,
+                'before_qty' => $beforeQty,
+                'after_qty' => (float) $target->quantity,
+                'note' => $item->note,
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+            ]);
+        });
+    }
+
     public function postPackingListItem(PackingListItem $item, string $transactionType = 'packing_packed'): void
     {
         if (! $item->stock_balance_id || (float) $item->packed_qty <= 0) {
@@ -343,6 +500,15 @@ class StockLedgerService
         }
 
         return (($beforeQty * $existingAverage) + ($deltaQty * $unitCost)) / $afterQty;
+    }
+
+    protected function hasStockTransaction(string $type, string $referenceType, string $referenceId): bool
+    {
+        return StockTransaction::query()
+            ->where('type', $type)
+            ->where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->exists();
     }
 
     protected function nextTransactionCode(): string

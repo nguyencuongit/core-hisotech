@@ -8,6 +8,7 @@ use Botble\Inventory\Domains\WarehouseProduct\Repositories\Interfaces\ProductRea
 use Botble\Inventory\Domains\WarehouseProduct\Repositories\Interfaces\WarehouseProductInterface;
 use Botble\Inventory\Domains\WarehouseProduct\Repositories\Interfaces\WarehouseReadInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class WarehouseProductCatalogService
 {
@@ -34,6 +35,7 @@ class WarehouseProductCatalogService
         );
 
         $this->attachWarehouseProducts($products, $isSuperAdmin, $allowedWarehouseIds, $selectedWarehouseId);
+        $this->attachStockSummaries($products, $isSuperAdmin, $allowedWarehouseIds, $selectedWarehouseId);
 
         return [
             'products' => $products,
@@ -67,7 +69,7 @@ class WarehouseProductCatalogService
             $isSuperAdmin,
             $allowedWarehouseIds,
             $selectedWarehouseId,
-            ['warehouse', 'productVariation', 'supplier']
+            ['warehouse', 'productVariation', 'supplier', 'defaultLocation']
         );
 
         $allWarehouseProducts = $this->warehouseProducts->activeAssignmentsByProductIds(
@@ -81,6 +83,54 @@ class WarehouseProductCatalogService
         $products->getCollection()->each(function (Product $product) use ($warehouseProducts, $allWarehouseProducts): void {
             $product->setRelation('inventoryWarehouseProducts', $warehouseProducts->get($product->getKey(), collect()));
             $product->setRelation('allInventoryWarehouseProducts', $allWarehouseProducts->get($product->getKey(), collect()));
+        });
+    }
+
+    protected function attachStockSummaries(
+        LengthAwarePaginator $products,
+        bool $isSuperAdmin,
+        array $allowedWarehouseIds,
+        ?int $selectedWarehouseId
+    ): void {
+        $productIds = $products->getCollection()->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        $products->getCollection()->each(function (Product $product): void {
+            $product->setRelation('inventoryStockSummary', null);
+        });
+
+        if ($productIds === []) {
+            return;
+        }
+
+        if (! $isSuperAdmin && $allowedWarehouseIds === []) {
+            return;
+        }
+
+        $stockQuery = DB::table('inv_stock_balances')
+            ->whereIn('product_id', $productIds)
+            ->selectRaw('product_id')
+            ->selectRaw('SUM(quantity) as inventory_quantity')
+            ->selectRaw('SUM(available_qty) as inventory_available_qty')
+            ->selectRaw('SUM(reserved_qty) as inventory_reserved_qty')
+            ->selectRaw('SUM(qc_hold_qty) as inventory_qc_hold_qty')
+            ->selectRaw('SUM(damaged_qty) as inventory_damaged_qty')
+            ->selectRaw('SUM(rejected_qty) as inventory_rejected_qty')
+            ->selectRaw('COALESCE(SUM(CASE WHEN quantity > 0 THEN average_cost * quantity ELSE 0 END) / NULLIF(SUM(CASE WHEN quantity > 0 THEN quantity ELSE 0 END), 0), MAX(NULLIF(last_unit_cost, 0)), MAX(NULLIF(average_cost, 0)), 0) as inventory_average_cost')
+            ->selectRaw('MAX(last_unit_cost) as inventory_last_unit_cost')
+            ->groupBy('product_id');
+
+        if ($selectedWarehouseId && $selectedWarehouseId > 0) {
+            $stockQuery->where('warehouse_id', $selectedWarehouseId);
+        } elseif (! $isSuperAdmin) {
+            $stockQuery->whereIn('warehouse_id', $allowedWarehouseIds);
+        }
+
+        $stockSummaries = $stockQuery
+            ->get()
+            ->keyBy(fn ($summary): int => (int) $summary->product_id);
+
+        $products->getCollection()->each(function (Product $product) use ($stockSummaries): void {
+            $product->setRelation('inventoryStockSummary', $stockSummaries->get((int) $product->getKey()));
         });
     }
 

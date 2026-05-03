@@ -2,9 +2,10 @@
 
 namespace Botble\Inventory\Domains\Transactions\Models;
 
-use Botble\Base\Casts\SafeContent;
-use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
+use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Import extends BaseModel
 {
@@ -44,14 +45,36 @@ class Import extends BaseModel
 
         'lot_no',
         'expiry_date',
+
+        'created_by',
+        'approved_by',
+        'approved_at',
     ];
 
     protected $casts = [
-        
+        'warehouse_id' => 'integer',
+        'partner_id' => 'integer',
+        'province_id' => 'integer',
+        'ward_id' => 'integer',
+        'requested_by' => 'integer',
+        'reference_id' => 'integer',
+        'posting_date' => 'date',
+        'document_date' => 'date',
+        'received_at' => 'datetime',
+        'receiver_id' => 'integer',
+        'created_by' => 'integer',
+        'approved_by' => 'integer',
+        'approved_at' => 'datetime',
+        'expiry_date' => 'date',
     ];
 
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ImportItem::class, 'import_id');
     }
 }
