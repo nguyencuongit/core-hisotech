@@ -84,7 +84,7 @@ src/Domains/<Domain>/
   Http/
     Controllers/
     Requests/
-  Mappers/              (Model ↔ Entity conversion — see section 4.3)
+  Mappers/              (array/plain data → Entity conversion; no Eloquent Model import in strict DDD mode)
   Models/
   Permissions/          (one file per domain — see section 4.2)
   Providers/
@@ -279,6 +279,34 @@ Do not put orchestration or multi-table workflow logic in Models.
 
 Do not use Models as service classes.
 
+## Cross-plugin Model Boundary
+
+Inventory plugin KHÔNG được import hoặc query trực tiếp Model của plugin khác.
+
+Ví dụ cấm:
+
+- `Botble\Ecommerce\Models\Product`
+- `Botble\Ecommerce\Models\ProductVariation`
+- `Botble\ACL\Models\User`
+- bất kỳ Model nào thuộc plugin/module khác ngoài Inventory
+
+Sai:
+
+```php
+use Botble\Ecommerce\Models\Product;
+
+Product::query()->find($id);
+```
+
+Đúng:
+
+- Tạo Repository/Interface riêng trong Inventory, ví dụ `ProductReadInterface`.
+- Implementation nằm trong `Repositories/Eloquent/`.
+- Bên trong repository đó dùng `DB::table('ec_products')` để đọc dữ liệu.
+- Service/UseCase/Action/Controller chỉ gọi `ProductReadInterface`.
+
+If Inventory needs foreign-plugin data, the repository/adapter must own the query and return Inventory-friendly data structures.
+
 ---
 
 ### `Providers/`
@@ -324,6 +352,10 @@ Use repositories for:
 - complex data access
 - find/update helpers
 
+Repositories/Eloquent được dùng Model thuộc Inventory domain.
+Repositories/Eloquent không được dùng Model thuộc plugin khác.
+Muốn đọc dữ liệu plugin khác thì dùng `DB::table()` qua Inventory-owned Repository/Adapter.
+
 Do not put controller-specific UI logic here.
 
 Repository methods must return query builders, collections, models, arrays, or scalar values correctly.
@@ -363,7 +395,8 @@ Use services for:
 - state changes
 - persistence coordination within one domain
 
-Services may call repositories and models.
+Services chỉ được gọi Repository Interface và Service khác.
+Services không được import/call Model trực tiếp, kể cả Model trong Inventory hay Model ngoài plugin.
 
 Services should not render admin UI.
 
@@ -557,7 +590,9 @@ Each domain has exactly one Permissions class:
 src/Domains/<Domain>/Permissions/<Domain>Permissions.php
 ```
 
-The class holds public string constants only. No methods, no logic.
+The class holds public string constants only.
+The only allowed method is `all()` when config/permissions.php needs auto-registration.
+No other methods or logic are allowed.
 
 ### Example
 
@@ -690,7 +725,7 @@ When an agent edits anything in a domain, it sees `<Domain>Permissions.php` firs
 
 Even with section 4.1 enforced, business logic still leaks Eloquent details (relations, accessors, framework events) up into Services, Usecases, and Actions. Fix by introducing a **Domain Entity** layer: immutable PHP objects that represent the business entity *without any Eloquent inheritance or framework coupling*.
 
-> **Services, Usecases, Actions, and DTOs MUST consume `XxxEntity`, not `XxxModel`. The Eloquent Model is allowed only in `Repositories/Eloquent/`, `Mappers/`, and a documented framework-boundary list (Forms, Tables, Provider DI).**
+> **Services, Usecases, Actions, and DTOs MUST consume `XxxEntity`, not `XxxModel`. The Eloquent Model is allowed only in `Repositories/Eloquent/` and documented framework-boundary files such as Forms, Tables, and Provider DI. Mappers MUST NOT import Eloquent Models in strict DDD mode.**
 
 ### Folder structure (mandatory when this rule applies)
 
@@ -784,15 +819,20 @@ final class SupplierEntity
 ### Mapper rules
 
 - One file per domain: `Mappers/<Domain>Mapper.php`.
-- Static methods only (`toEntity`, `toEntities`, `toContactEntity`, …).
-- The **only** place in the domain that imports both `Models\X` AND `Entities\X`.
-- No DB calls in the mapper. It accepts an *already-loaded* model (with its relations) and returns an entity.
+- Static methods only: `toEntity`, `toEntities`, `toContactEntity`, ...
+- Mapper MUST NOT import Eloquent Models.
+- Mapper accepts array/plain data only and returns Entity.
+- Repository/Eloquent is responsible for converting Eloquent Model to array before calling Mapper.
+- No DB calls in Mapper.
+- Mapper may import Entities, Enums, Carbon/value objects only.
 
 ### Repository rules under this pattern
 
 - **Read methods** return Entity (or `?Entity`, `list<Entity>`).
 - **Write methods** accept primitives or DTO, return Entity.
-- Repository is the only file (besides Mapper) that uses both worlds: it queries Eloquent internally, then calls the Mapper before returning.
+- Repository/Eloquent is the only layer that touches Eloquent Models.
+- It queries Inventory-owned Eloquent Models internally, converts them to array/plain data, then calls Mapper before returning Entity.
+- Mapper does not receive or import Eloquent Models.
 - Lock-and-update flows: lock with Eloquent inside repo, update, then map to Entity for the return value.
 
 ### Allowed vs forbidden by layer (with Entity rule applied)
@@ -801,8 +841,8 @@ final class SupplierEntity
 |---|---|---|
 | `Models/` | ✅ self | ❌ |
 | `Entities/` | ❌ | ✅ self |
-| `Mappers/` | ✅ | ✅ |
-| `Repositories/Eloquent/` | ✅ | ✅ (return type) |
+| `Mappers/` | ❌ | ✅ |
+| `Repositories/Eloquent/` | ✅ Inventory-owned Models only | ✅ |
 | `Repositories/Interfaces/` | ❌ | ✅ |
 | `Services/` | ❌ | ✅ |
 | `UseCases/` | ❌ | ✅ |
@@ -888,6 +928,21 @@ Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*
 ```
 
 If the result is non-empty, either remove the Model import (use Entity) or — only if the file is `Mappers/` or `Repositories/Eloquent/` — confirm it is in the allowed list above.
+
+# Find external plugin Model imports inside Inventory plugin
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Select-String -Pattern 'use Botble\\(Ecommerce|ACL|Marketplace|Payment|Blog)\\.*\\Models\\' |
+  Select-Object Path, LineNumber, Line
+
+If any result appears, replace it with an Inventory-owned Repository/Adapter that uses `DB::table()`.
+
+# Strict DDD: Mappers must not import Eloquent Models
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Where-Object { $_.FullName -match '\\Mappers\\' } |
+  Select-String -Pattern 'use Botble\\Inventory\\Domains\\\w+\\Models\\' |
+  Select-Object Path, LineNumber, Line
+
+If any result appears, the Mapper is not strict-DDD compliant.
 
 ### Why this matters
 

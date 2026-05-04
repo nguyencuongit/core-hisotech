@@ -12,6 +12,7 @@ use Botble\Inventory\Domains\Supplier\Models\SupplierContact;
 use Botble\Inventory\Domains\Supplier\Models\SupplierProduct;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
+use Illuminate\Support\Facades\DB;
 
 class SupplierRepository extends RepositoriesAbstract implements SupplierInterface
 {
@@ -143,11 +144,8 @@ class SupplierRepository extends RepositoriesAbstract implements SupplierInterfa
             'contacts',
             'addresses',
             'banks',
-            'supplierProducts.product',
-            'approvals.actor',
-            'creator',
-            'submitter',
-            'approver',
+            'supplierProducts',
+            'approvals',
         ];
     }
 
@@ -157,10 +155,7 @@ class SupplierRepository extends RepositoriesAbstract implements SupplierInterfa
             'contacts',
             'addresses',
             'banks',
-            'supplierProducts.product',
-            'creator',
-            'submitter',
-            'approver',
+            'supplierProducts',
         ];
     }
 }

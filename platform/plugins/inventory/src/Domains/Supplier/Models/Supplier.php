@@ -2,15 +2,11 @@
 
 namespace Botble\Inventory\Domains\Supplier\Models;
 
-use Botble\ACL\Models\User;
 use Botble\Base\Casts\SafeContent;
 use Botble\Base\Models\BaseModel;
-use Botble\Ecommerce\Models\Product;
 use Botble\Inventory\Enums\SupplierStatusEnum;
 use Botble\Inventory\Enums\SupplierTypeEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -77,13 +73,6 @@ class Supplier extends BaseModel
         return $this->hasMany(SupplierProduct::class, 'supplier_id');
     }
 
-    public function products(): BelongsToMany
-    {
-        return $this->belongsToMany(Product::class, 'inv_supplier_products', 'supplier_id', 'product_id')
-            ->withPivot(['id', 'supplier_sku', 'purchase_price', 'moq', 'lead_time_days'])
-            ->withTimestamps();
-    }
-
     public function primaryContact(): HasMany
     {
         return $this->contacts()->where('is_primary', true);
@@ -104,18 +93,4 @@ class Supplier extends BaseModel
         return $this->hasMany(SupplierApproval::class, 'supplier_id');
     }
 
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function submitter(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'submitted_by');
-    }
-
-    public function approver(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'approved_by');
-    }
 }
