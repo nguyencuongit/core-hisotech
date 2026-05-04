@@ -1,3 +1,7 @@
+@php
+    $productOptions = $products ?? app(\Botble\Inventory\Services\ProductFormService::class)->showProductForm();
+@endphp
+
 <div>
     <h2>Product</h2>
 
@@ -126,6 +130,36 @@
 
         const tbody = table.querySelector('tbody');
         const addBtn = document.getElementById('add-item');
+        const productOptions = @json($productOptions);
+        const productPlaceholder = table.querySelector('.select-search option[value=""]')?.textContent ?? '';
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, function (char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;',
+                }[char];
+            });
+        }
+
+        function syncProductSelect(container) {
+            container.querySelectorAll('.select-search').forEach(function (select) {
+                const selectedValue = select.value || '';
+                let optionsHtml = `<option value="">${escapeHtml(productPlaceholder)}</option>`;
+
+                Object.entries(productOptions).forEach(function ([productId, productName]) {
+                    optionsHtml += `<option value="${escapeHtml(productId)}">${escapeHtml(productName)}</option>`;
+                });
+
+                select.innerHTML = optionsHtml;
+                select.value = Object.prototype.hasOwnProperty.call(productOptions, selectedValue)
+                    ? selectedValue
+                    : '';
+            });
+        }
 
         function getItemRows() {
             return tbody.querySelectorAll('.item-row');
@@ -191,7 +225,7 @@
             const levelQtyWrap = row.querySelector('.js-level-qty-wrap');
 
             if (productSelect) {
-                productSelect.value = '';
+                syncProductSelect(row);
             }
 
             if (qtyInput) {
@@ -363,6 +397,7 @@
             }
         });
 
+        syncProductSelect(document);
         initEnhancedSelect(document);
         reindexRows();
         updateTotals();
