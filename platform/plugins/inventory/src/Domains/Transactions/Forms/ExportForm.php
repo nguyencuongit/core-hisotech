@@ -10,11 +10,11 @@ use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Botble\Inventory\Domains\Transactions\Enums\DocumentStatusEnum;
 use Botble\Inventory\Domains\Transactions\Enums\ExportTypeEnum;
 use Botble\Inventory\Domains\Transactions\Enums\PartnerTypeEnum;
+use Botble\Inventory\Services\ProductFormService;
+
 
 class ExportForm extends FormAbstract
 {
-
-    
     public function setup(): void
     {   
         $query = Warehouse::query();
@@ -26,6 +26,7 @@ class ExportForm extends FormAbstract
         $warehouseChoices = $query
             ->pluck('name', 'id')
             ->all();
+        $products = app(ProductFormService::class)->showProductForm();
         
         $this
             ->model(Export::class)
@@ -493,7 +494,7 @@ class ExportForm extends FormAbstract
 
             ->add('items_prd', 'html', [
                     'html' => view('plugins/inventory::forms.partials.form-table', [
-                        'model' => 1,
+                        'products' => $products,
                     ])->render(),
                 ]);
     }
