@@ -1,19 +1,57 @@
 @php
     $supplier = $supplier ?? null;
-    $oldContacts = old('contacts', $supplier?->contacts?->toArray() ?? [[]]);
-    $oldAddresses = old('addresses', $supplier?->addresses?->toArray() ?? [[]]);
-    $oldBanks = old('banks', $supplier?->banks?->toArray() ?? [[]]);
-    $oldProducts = old('supplier_products', $supplier?->supplierProducts?->toArray() ?? []);
+
+    // Entity-compatible: convert Entity child arrays to form-friendly snake_case arrays
+    $rawContacts = [];
+    $rawAddresses = [];
+    $rawBanks = [];
+    $rawProducts = [];
+
+    if ($supplier) {
+        $rawContacts = array_map(fn ($c) => [
+            'name' => $c->name ?? null, 'position' => $c->position ?? null,
+            'phone' => $c->phone ?? null, 'email' => $c->email ?? null,
+            'identity_number' => $c->identityNumber ?? null,
+            'social_contact' => $c->socialContact ?? [],
+            'is_primary' => $c->isPrimary ?? false,
+        ], $supplier->contacts ?? []);
+
+        $rawAddresses = array_map(fn ($a) => [
+            'type' => $a->type?->value ?? $a->type ?? null, 'address' => $a->address ?? null,
+            'ward_id' => $a->wardId ?? null, 'district_id' => $a->districtId ?? null,
+            'province_id' => $a->provinceId ?? null, 'country_id' => $a->countryId ?? null,
+            'is_default' => $a->isDefault ?? false,
+        ], $supplier->addresses ?? []);
+
+        $rawBanks = array_map(fn ($b) => [
+            'bank_name' => $b->bankName ?? null, 'branch' => $b->branch ?? null,
+            'account_number' => $b->accountNumber ?? null, 'account_name' => $b->accountName ?? null,
+            'is_default' => $b->isDefault ?? false,
+        ], $supplier->banks ?? []);
+
+        $rawProducts = array_map(fn ($p) => [
+            'product_id' => $p->productId ?? null, 'supplier_sku' => $p->supplierSku ?? null,
+            'purchase_price' => $p->purchasePrice ?? null, 'moq' => $p->moq ?? null,
+            'lead_time_days' => $p->leadTimeDays ?? null,
+            'product_name' => $p->productName ?? null, 'product_sku' => $p->productSku ?? null,
+        ], $supplier->products ?? []);
+    }
+
+    $oldContacts = old('contacts', $rawContacts ?: [[]]);
+    $oldAddresses = old('addresses', $rawAddresses ?: [[]]);
+    $oldBanks = old('banks', $rawBanks ?: [[]]);
+    $oldProducts = old('supplier_products', $rawProducts ?: []);
+
     $canSelectSupplierStatus = auth()->user()?->isSuperUser() === true;
     $defaultSupplierStatus = $canSelectSupplierStatus
         ? \Botble\Inventory\Enums\SupplierStatusEnum::DRAFT->value
         : \Botble\Inventory\Enums\SupplierStatusEnum::PENDING_APPROVAL->value;
     $selectedSupplierStatus = $canSelectSupplierStatus
-        ? old('status', $supplier?->getRawOriginal('status') ?? $defaultSupplierStatus)
-        : ($supplier?->getRawOriginal('status') ?? \Botble\Inventory\Enums\SupplierStatusEnum::PENDING_APPROVAL->value);
+        ? old('status', $supplier?->status?->value ?? $defaultSupplierStatus)
+        : ($supplier?->status?->value ?? \Botble\Inventory\Enums\SupplierStatusEnum::PENDING_APPROVAL->value);
     $selectedSupplierStatusLabel = \Botble\Inventory\Enums\SupplierStatusEnum::tryFrom((string) $selectedSupplierStatus)?->label()
         ?? \Botble\Inventory\Enums\SupplierStatusEnum::PENDING_APPROVAL->label();
-    $selectedSupplierType = old('type', $supplier?->getRawOriginal('type') ?? \Botble\Inventory\Enums\SupplierTypeEnum::COMPANY->value);
+    $selectedSupplierType = old('type', $supplier?->type?->value ?? \Botble\Inventory\Enums\SupplierTypeEnum::COMPANY->value);
     $addressTypeOptions = collect(\Botble\Inventory\Enums\SupplierAddressTypeEnum::cases())
         ->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()])
         ->values()
@@ -388,7 +426,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">{{ trans('plugins/inventory::inventory.supplier.tax_code') }}</label>
-                            <input type="text" name="tax_code" class="form-control @error('tax_code') is-invalid @enderror" value="{{ old('tax_code', $supplier->tax_code ?? '') }}">
+                            <input type="text" name="tax_code" class="form-control @error('tax_code') is-invalid @enderror" value="{{ old('tax_code', $supplier->taxCode ?? '') }}">
                             @error('tax_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">

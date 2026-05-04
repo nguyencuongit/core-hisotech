@@ -36,7 +36,6 @@ class ImportTable extends TableAbstract
                 DeleteBulkAction::make()->permission('inventory.transactions-import.destroy'),
             ]);
     }
-
    
 
     public function query(): Builder|QueryBuilder

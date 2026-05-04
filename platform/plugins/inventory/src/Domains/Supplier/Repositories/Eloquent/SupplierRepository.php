@@ -2,34 +2,144 @@
 
 namespace Botble\Inventory\Domains\Supplier\Repositories\Eloquent;
 
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
+use Botble\Inventory\Domains\Supplier\Mappers\SupplierMapper;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Models\SupplierAddress;
 use Botble\Inventory\Domains\Supplier\Models\SupplierApproval;
+use Botble\Inventory\Domains\Supplier\Models\SupplierBank;
+use Botble\Inventory\Domains\Supplier\Models\SupplierContact;
+use Botble\Inventory\Domains\Supplier\Models\SupplierProduct;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
 
 class SupplierRepository extends RepositoriesAbstract implements SupplierInterface
 {
-    public function createSupplier(array $attributes): Supplier
+    public function __construct(Supplier $model)
     {
-        return Supplier::query()->create($attributes);
+        parent::__construct($model);
     }
 
-    public function updateSupplier(Supplier $supplier, array $attributes): Supplier
+    public function createSupplier(array $attributes): SupplierEntity
     {
-        $supplier->fill($attributes);
-        $supplier->save();
+        $supplier = Supplier::query()->create($attributes);
 
-        return $supplier;
+        return $this->toEntity($supplier);
     }
 
-    public function deleteSupplier(Supplier $supplier): bool
+    public function updateSupplier(int|string $supplierId, array $attributes): SupplierEntity
     {
-        return (bool) $supplier->delete();
+        $model = Supplier::query()->findOrFail($supplierId);
+        $model->fill($attributes);
+        $model->save();
+
+        return $this->toEntity($model->refresh());
     }
 
-    public function loadForShow(Supplier $supplier): Supplier
+    public function deleteSupplier(int|string $supplierId): bool
     {
-        return $supplier->load([
+        return (bool) Supplier::query()
+            ->findOrFail($supplierId)
+            ->delete();
+    }
+
+    public function readForShow(int|string $supplierId): SupplierEntity
+    {
+        $supplier = Supplier::query()
+            ->with($this->showRelations())
+            ->findOrFail($supplierId);
+
+        return $this->toEntity($supplier);
+    }
+
+    public function readForApproval(int|string $supplierId): SupplierEntity
+    {
+        return $this->readForShow($supplierId);
+    }
+
+    public function readForEdit(int|string $supplierId): SupplierEntity
+    {
+        $supplier = Supplier::query()
+            ->with($this->editRelations())
+            ->findOrFail($supplierId);
+
+        return $this->toEntity($supplier);
+    }
+
+    public function reload(int|string $supplierId, array $with = []): SupplierEntity
+    {
+        $model = Supplier::query()
+            ->with($with)
+            ->findOrFail($supplierId);
+
+        return $this->toEntity($model);
+    }
+
+    public function deleteChildren(int|string $supplierId): void
+    {
+        SupplierContact::query()->where('supplier_id', $supplierId)->delete();
+        SupplierAddress::query()->where('supplier_id', $supplierId)->delete();
+        SupplierBank::query()->where('supplier_id', $supplierId)->delete();
+        SupplierProduct::query()->where('supplier_id', $supplierId)->delete();
+    }
+
+    public function createContact(int|string $supplierId, array $attributes): void
+    {
+        SupplierContact::query()->create(array_merge($attributes, [
+            'supplier_id' => $supplierId,
+        ]));
+    }
+
+    public function createAddress(int|string $supplierId, array $attributes): void
+    {
+        SupplierAddress::query()->create(array_merge($attributes, [
+            'supplier_id' => $supplierId,
+        ]));
+    }
+
+    public function createBank(int|string $supplierId, array $attributes): void
+    {
+        SupplierBank::query()->create(array_merge($attributes, [
+            'supplier_id' => $supplierId,
+        ]));
+    }
+
+    public function updateOrCreateProduct(int|string $supplierId, int $productId, array $attributes): void
+    {
+        SupplierProduct::query()->updateOrCreate(
+            [
+                'supplier_id' => $supplierId,
+                'product_id' => $productId,
+            ],
+            array_merge($attributes, [
+                'supplier_id' => $supplierId,
+                'product_id' => $productId,
+            ])
+        );
+    }
+
+    public function createApproval(int|string $supplierId, array $attributes): void
+    {
+        SupplierApproval::query()->create(array_merge($attributes, [
+            'supplier_id' => $supplierId,
+        ]));
+    }
+
+    public function codeExists(string $code): bool
+    {
+        return Supplier::query()
+            ->where('code', $code)
+            ->exists();
+    }
+
+    protected function toEntity(Supplier $supplier): SupplierEntity
+    {
+        return SupplierMapper::toEntity($supplier->toArray());
+    }
+
+    protected function showRelations(): array
+    {
+        return [
             'contacts',
             'addresses',
             'banks',
@@ -38,17 +148,12 @@ class SupplierRepository extends RepositoriesAbstract implements SupplierInterfa
             'creator',
             'submitter',
             'approver',
-        ]);
+        ];
     }
 
-    public function loadForApproval(Supplier $supplier): Supplier
+    protected function editRelations(): array
     {
-        return $this->loadForShow($supplier);
-    }
-
-    public function loadForEdit(Supplier $supplier): Supplier
-    {
-        return $supplier->load([
+        return [
             'contacts',
             'addresses',
             'banks',
@@ -56,56 +161,6 @@ class SupplierRepository extends RepositoriesAbstract implements SupplierInterfa
             'creator',
             'submitter',
             'approver',
-        ]);
-    }
-
-    public function reload(Supplier $supplier, array $with = []): Supplier
-    {
-        $freshSupplier = $supplier->fresh($with);
-
-        return $freshSupplier ?: $supplier->load($with);
-    }
-
-    public function deleteChildren(Supplier $supplier): void
-    {
-        $supplier->contacts()->delete();
-        $supplier->addresses()->delete();
-        $supplier->banks()->delete();
-        $supplier->supplierProducts()->delete();
-    }
-
-    public function createContact(Supplier $supplier, array $attributes): void
-    {
-        $supplier->contacts()->create($attributes);
-    }
-
-    public function createAddress(Supplier $supplier, array $attributes): void
-    {
-        $supplier->addresses()->create($attributes);
-    }
-
-    public function createBank(Supplier $supplier, array $attributes): void
-    {
-        $supplier->banks()->create($attributes);
-    }
-
-    public function updateOrCreateProduct(Supplier $supplier, int $productId, array $attributes): void
-    {
-        $supplier->supplierProducts()->updateOrCreate(
-            ['product_id' => $productId],
-            $attributes
-        );
-    }
-
-    public function createApproval(Supplier $supplier, array $attributes): SupplierApproval
-    {
-        return SupplierApproval::query()->create(array_merge($attributes, [
-            'supplier_id' => $supplier->getKey(),
-        ]));
-    }
-
-    public function codeExists(string $code): bool
-    {
-        return Supplier::query()->where('code', $code)->exists();
+        ];
     }
 }

@@ -4,7 +4,7 @@ namespace Botble\Inventory\Domains\Supplier\Services;
 
 use Botble\Base\Events\AdminNotificationEvent;
 use Botble\Base\Supports\AdminNotificationItem;
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 use Botble\Inventory\Enums\SupplierStatusEnum;
 use Illuminate\Support\Arr;
@@ -17,7 +17,7 @@ class SupplierService
     ) {
     }
 
-    public function create(array $data): Supplier
+    public function create(array $data): SupplierEntity
     {
         return DB::transaction(function () use ($data) {
             $supplierAttributes = $this->prepareSupplierData($data);
@@ -25,7 +25,7 @@ class SupplierService
             $supplier = $this->suppliers->createSupplier($supplierAttributes);
 
             $this->syncChildren($supplier, $data);
-            $supplier = $this->suppliers->reload($supplier);
+            $supplier = $this->suppliers->reload($supplier->id);
 
             $this->logApprovalAction(
                 $supplier,
@@ -57,24 +57,24 @@ class SupplierService
                 );
             }
 
-            return $this->suppliers->reload($supplier, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
+            return $this->suppliers->reload($supplier->id, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
         });
     }
 
-    public function update(Supplier $supplier, array $data): Supplier
+    public function update(SupplierEntity $supplier, array $data): SupplierEntity
     {
         return DB::transaction(function () use ($supplier, $data) {
-            $supplier = $this->suppliers->reload($supplier, ['banks', 'addresses']);
+            $supplier = $this->suppliers->reload($supplier->id, ['banks', 'addresses']);
             $oldSensitive = $this->sensitiveSnapshot($supplier);
 
-            $this->suppliers->updateSupplier($supplier, $this->prepareSupplierData($data, $supplier));
+            $supplier = $this->suppliers->updateSupplier($supplier->id, $this->prepareSupplierData($data, $supplier));
             $this->syncChildren($supplier, $data, true);
 
-            $freshSupplier = $this->suppliers->reload($supplier, ['banks', 'addresses']);
+            $freshSupplier = $this->suppliers->reload($supplier->id, ['banks', 'addresses']);
             $newSensitive = $this->sensitiveSnapshot($freshSupplier);
 
-            if ($oldSensitive !== $newSensitive && $freshSupplier->status?->isApproved()) {
-                $this->suppliers->updateSupplier($freshSupplier, [
+            if ($oldSensitive !== $newSensitive && $freshSupplier->isApproved()) {
+                $freshSupplier = $this->suppliers->updateSupplier($freshSupplier->id, [
                     'requires_reapproval' => true,
                     'status' => SupplierStatusEnum::PENDING_APPROVAL->value,
                 ]);
@@ -89,16 +89,21 @@ class SupplierService
                 $this->notifySuperAdminForApproval($freshSupplier);
             }
 
-            return $this->suppliers->reload($supplier, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
+            return $this->suppliers->reload($supplier->id, ['contacts', 'addresses', 'banks', 'supplierProducts.product', 'approvals']);
         });
     }
 
-    public function submitForApproval(Supplier $supplier, ?string $note = null): Supplier
+    public function delete(SupplierEntity $supplier): bool
+    {
+        return DB::transaction(fn () => $this->suppliers->deleteSupplier($supplier->id));
+    }
+
+    public function submitForApproval(SupplierEntity $supplier, ?string $note = null): SupplierEntity
     {
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $this->suppliers->updateSupplier($supplier, [
+            $supplier = $this->suppliers->updateSupplier($supplier->id, [
                 'status' => SupplierStatusEnum::PENDING_APPROVAL->value,
                 'submitted_by' => auth()->id(),
                 'submitted_at' => now(),
@@ -106,18 +111,18 @@ class SupplierService
             ]);
 
             $this->logApprovalAction($supplier, 'submit', $fromStatus, SupplierStatusEnum::PENDING_APPROVAL->value, $note);
-            $this->notifySuperAdminForApproval($this->suppliers->reload($supplier));
+            $this->notifySuperAdminForApproval($this->suppliers->reload($supplier->id));
 
-            return $this->suppliers->reload($supplier);
+            return $this->suppliers->reload($supplier->id);
         });
     }
 
-    public function approve(Supplier $supplier, ?string $note = null): Supplier
+    public function approve(SupplierEntity $supplier, ?string $note = null): SupplierEntity
     {
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $this->suppliers->updateSupplier($supplier, [
+            $supplier = $this->suppliers->updateSupplier($supplier->id, [
                 'status' => SupplierStatusEnum::ACTIVE->value,
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
@@ -127,16 +132,16 @@ class SupplierService
 
             $this->logApprovalAction($supplier, 'approve', $fromStatus, SupplierStatusEnum::ACTIVE->value, $note);
 
-            return $this->suppliers->reload($supplier);
+            return $this->suppliers->reload($supplier->id);
         });
     }
 
-    public function reject(Supplier $supplier, ?string $note = null): Supplier
+    public function reject(SupplierEntity $supplier, ?string $note = null): SupplierEntity
     {
         return DB::transaction(function () use ($supplier, $note) {
             $fromStatus = $supplier->status?->value;
 
-            $this->suppliers->updateSupplier($supplier, [
+            $supplier = $this->suppliers->updateSupplier($supplier->id, [
                 'status' => SupplierStatusEnum::REJECTED->value,
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
@@ -145,11 +150,11 @@ class SupplierService
 
             $this->logApprovalAction($supplier, 'reject', $fromStatus, SupplierStatusEnum::REJECTED->value, $note);
 
-            return $this->suppliers->reload($supplier);
+            return $this->suppliers->reload($supplier->id);
         });
     }
 
-    protected function prepareSupplierData(array $data, ?Supplier $supplier = null): array
+    protected function prepareSupplierData(array $data, ?SupplierEntity $supplier = null): array
     {
         $code = Arr::get($data, 'code');
         $status = Arr::get($data, 'status');
@@ -170,12 +175,12 @@ class SupplierService
             $data['created_by'] = auth()->id();
         }
 
-        if ($status === SupplierStatusEnum::PENDING_APPROVAL->value && (! $supplier || ! $supplier->submitted_by)) {
+        if ($status === SupplierStatusEnum::PENDING_APPROVAL->value && (! $supplier || ! $supplier->submittedBy)) {
             $data['submitted_by'] = auth()->id();
             $data['submitted_at'] = $now;
         }
 
-        if ($status === SupplierStatusEnum::ACTIVE->value && (! $supplier || ! $supplier->approved_by)) {
+        if ($status === SupplierStatusEnum::ACTIVE->value && (! $supplier || ! $supplier->approvedBy)) {
             $data['approved_by'] = auth()->id();
             $data['approved_at'] = $now;
             $data['requires_reapproval'] = false;
@@ -200,19 +205,21 @@ class SupplierService
         ]);
     }
 
-    protected function syncChildren(Supplier $supplier, array $data, bool $replace = false): void
+    protected function syncChildren(SupplierEntity $supplier, array $data, bool $replace = false): void
     {
+        $supplierId = $supplier->id;
+
         if ($replace) {
-            $this->suppliers->deleteChildren($supplier);
+            $this->suppliers->deleteChildren($supplierId);
         }
 
-        $this->syncContacts($supplier, Arr::get($data, 'contacts', []));
-        $this->syncAddresses($supplier, Arr::get($data, 'addresses', []));
-        $this->syncBanks($supplier, Arr::get($data, 'banks', []));
-        $this->syncProducts($supplier, Arr::get($data, 'supplier_products', []));
+        $this->syncContacts($supplierId, Arr::get($data, 'contacts', []));
+        $this->syncAddresses($supplierId, Arr::get($data, 'addresses', []));
+        $this->syncBanks($supplierId, Arr::get($data, 'banks', []));
+        $this->syncProducts($supplierId, Arr::get($data, 'supplier_products', []));
     }
 
-    protected function syncContacts(Supplier $supplier, array $contacts): void
+    protected function syncContacts(int|string $supplierId, array $contacts): void
     {
         $rows = array_values(array_filter($contacts, fn ($item) => Arr::get($item, 'name')));
 
@@ -234,7 +241,7 @@ class SupplierService
                 $firstPrimarySet = true;
             }
 
-            $this->suppliers->createContact($supplier, [
+            $this->suppliers->createContact($supplierId, [
                 'name' => Arr::get($contact, 'name'),
                 'position' => Arr::get($contact, 'position'),
                 'phone' => Arr::get($contact, 'phone'),
@@ -246,7 +253,7 @@ class SupplierService
         }
     }
 
-    protected function syncAddresses(Supplier $supplier, array $addresses): void
+    protected function syncAddresses(int|string $supplierId, array $addresses): void
     {
         $rows = array_values(array_filter($addresses, fn ($item) => Arr::get($item, 'address')));
 
@@ -268,7 +275,7 @@ class SupplierService
                 $firstDefaultSet = true;
             }
 
-            $this->suppliers->createAddress($supplier, [
+            $this->suppliers->createAddress($supplierId, [
                 'type' => Arr::get($address, 'type'),
                 'address' => Arr::get($address, 'address'),
                 'ward_id' => Arr::get($address, 'ward_id'),
@@ -280,7 +287,7 @@ class SupplierService
         }
     }
 
-    protected function syncBanks(Supplier $supplier, array $banks): void
+    protected function syncBanks(int|string $supplierId, array $banks): void
     {
         $rows = array_values(array_filter($banks, fn ($item) => Arr::get($item, 'bank_name') && Arr::get($item, 'account_number')));
 
@@ -302,7 +309,7 @@ class SupplierService
                 $firstDefaultSet = true;
             }
 
-            $this->suppliers->createBank($supplier, [
+            $this->suppliers->createBank($supplierId, [
                 'bank_name' => Arr::get($bank, 'bank_name'),
                 'branch' => Arr::get($bank, 'branch'),
                 'account_number' => Arr::get($bank, 'account_number'),
@@ -312,7 +319,7 @@ class SupplierService
         }
     }
 
-    protected function syncProducts(Supplier $supplier, array $products): void
+    protected function syncProducts(int|string $supplierId, array $products): void
     {
         $seenProductIds = [];
 
@@ -325,7 +332,7 @@ class SupplierService
 
             $seenProductIds[] = $productId;
 
-            $this->suppliers->updateOrCreateProduct($supplier, $productId, [
+            $this->suppliers->updateOrCreateProduct($supplierId, $productId, [
                 'supplier_sku' => Arr::get($product, 'supplier_sku'),
                 'purchase_price' => $this->nullableNumber(Arr::get($product, 'purchase_price')),
                 'moq' => $this->nullableInteger(Arr::get($product, 'moq')),
@@ -352,23 +359,23 @@ class SupplierService
         return (int) $value;
     }
 
-    protected function logApprovalAction(Supplier $supplier, string $action, ?string $from, ?string $to, ?string $note): void
+    protected function logApprovalAction(SupplierEntity $supplier, string $action, ?string $from, ?string $to, ?string $note): void
     {
         $actedAt = match ($action) {
-            'create' => $supplier->created_at ?: now(),
-            'submit' => $supplier->submitted_at ?: now(),
-            'approve', 'reject' => $supplier->approved_at ?: now(),
+            'create' => $supplier->createdAt ?: now(),
+            'submit' => $supplier->submittedAt ?: now(),
+            'approve', 'reject' => $supplier->approvedAt ?: now(),
             default => now(),
         };
 
         $actedBy = match ($action) {
-            'create' => $supplier->created_by ?: auth()->id(),
-            'submit' => $supplier->submitted_by ?: auth()->id(),
-            'approve', 'reject' => $supplier->approved_by ?: auth()->id(),
+            'create' => $supplier->createdBy ?: auth()->id(),
+            'submit' => $supplier->submittedBy ?: auth()->id(),
+            'approve', 'reject' => $supplier->approvedBy ?: auth()->id(),
             default => auth()->id(),
         };
 
-        $this->suppliers->createApproval($supplier, [
+        $this->suppliers->createApproval($supplier->id, [
             'action' => $action,
             'from_status' => $from,
             'to_status' => $to,
@@ -379,7 +386,7 @@ class SupplierService
         ]);
     }
 
-    protected function notifySuperAdminForApproval(Supplier $supplier): void
+    protected function notifySuperAdminForApproval(SupplierEntity $supplier): void
     {
         event(new AdminNotificationEvent(
             AdminNotificationItem::make()
@@ -392,7 +399,7 @@ class SupplierService
                 ]))
                 ->action(
                     trans('plugins/inventory::inventory.supplier.notifications.pending_approval.action'),
-                    route('inventory.suppliers.approval', $supplier->getKey())
+                    route('inventory.suppliers.approval', $supplier->id)
                 )
                 ->permission(defined('ACL_ROLE_SUPER_USER') ? ACL_ROLE_SUPER_USER : 'superuser')
         ));
@@ -407,20 +414,20 @@ class SupplierService
         return $code;
     }
 
-    protected function sensitiveSnapshot(Supplier $supplier): array
+    protected function sensitiveSnapshot(SupplierEntity $supplier): array
     {
         return [
             'name' => $supplier->name,
-            'tax_code' => $supplier->tax_code,
-            'banks' => $supplier->banks->map(fn ($bank) => [
-                'bank_name' => $bank->bank_name,
-                'account_name' => $bank->account_name,
-                'account_number' => $bank->account_number,
-            ])->values()->all(),
-            'addresses' => $supplier->addresses->map(fn ($address) => [
+            'tax_code' => $supplier->taxCode,
+            'banks' => array_map(fn ($bank) => [
+                'bank_name' => $bank->bankName,
+                'account_name' => $bank->accountName,
+                'account_number' => $bank->accountNumber,
+            ], $supplier->banks),
+            'addresses' => array_map(fn ($address) => [
                 'type' => $address->type,
                 'address' => $address->address,
-            ])->values()->all(),
+            ], $supplier->addresses),
         ];
     }
 }

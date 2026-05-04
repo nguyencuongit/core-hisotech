@@ -2,18 +2,18 @@
 
 namespace Botble\Inventory\Domains\Supplier\Actions;
 
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
-use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
+use Botble\Inventory\Domains\Supplier\Services\SupplierService;
 
 class DeleteSupplierAction
 {
     public function __construct(
-        protected SupplierInterface $suppliers,
+        protected SupplierService $service,
     ) {
     }
 
-    public function execute(Supplier $supplier): bool
+    public function execute(SupplierEntity $supplier): bool
     {
-        return $this->suppliers->deleteSupplier($supplier);
+        return $this->service->delete($supplier);
     }
 }

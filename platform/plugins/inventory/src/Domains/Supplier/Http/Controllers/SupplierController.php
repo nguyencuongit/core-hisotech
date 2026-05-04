@@ -9,6 +9,7 @@ use Botble\Inventory\Domains\Supplier\DTO\SupplierProductSearchDTO;
 use Botble\Inventory\Domains\Supplier\Http\Requests\SupplierApprovalRequest;
 use Botble\Inventory\Domains\Supplier\Http\Requests\SupplierProductSearchRequest;
 use Botble\Inventory\Domains\Supplier\Http\Requests\SupplierRequest;
+use Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions;
 use Botble\Inventory\Domains\Supplier\Tables\SupplierTable;
 use Botble\Inventory\Domains\Supplier\UseCases\SupplierUsecase;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,7 @@ class SupplierController extends BaseController
 
     public function create()
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.create'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::CREATE), 403);
 
         $this->pageTitle(trans('plugins/inventory::inventory.supplier.create'));
 
@@ -38,7 +39,7 @@ class SupplierController extends BaseController
 
     public function store(SupplierRequest $request, SupplierUsecase $usecase)
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.create'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::CREATE), 403);
 
         $supplier = $usecase->create(SupplierDTO::fromRequest($request));
 
@@ -51,7 +52,7 @@ class SupplierController extends BaseController
 
     public function show($supplier, SupplierUsecase $usecase)
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.show'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::SHOW), 403);
 
         $supplier = $usecase->loadForShow($supplier);
 
@@ -73,7 +74,7 @@ class SupplierController extends BaseController
 
     public function edit($supplier, SupplierUsecase $usecase)
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.edit'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::EDIT), 403);
 
         $supplier = $usecase->loadForEdit($supplier);
 
@@ -84,7 +85,7 @@ class SupplierController extends BaseController
 
     public function update($supplier, SupplierRequest $request, SupplierUsecase $usecase)
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.edit'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::EDIT), 403);
 
         $usecase->update($supplier, SupplierDTO::fromRequest($request));
 
@@ -96,7 +97,7 @@ class SupplierController extends BaseController
 
     public function destroy($supplier, SupplierUsecase $usecase): mixed
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.delete'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::DESTROY), 403);
 
         $usecase->delete($supplier);
 
@@ -108,7 +109,7 @@ class SupplierController extends BaseController
 
     public function submit($supplier, SupplierApprovalRequest $request, SupplierUsecase $usecase)
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.edit'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::EDIT), 403);
 
         $usecase->submit($supplier, SupplierApprovalDTO::fromRequest($request));
 
@@ -135,7 +136,7 @@ class SupplierController extends BaseController
 
     public function searchProducts(SupplierProductSearchRequest $request, SupplierUsecase $usecase): JsonResponse
     {
-        abort_unless(auth()->user()?->hasPermission('inventory.suppliers.index'), 403);
+        abort_unless(auth()->user()?->hasPermission(SupplierPermissions::INDEX), 403);
 
         return response()->json([
             'results' => $usecase->searchProducts(SupplierProductSearchDTO::fromRequest($request)),

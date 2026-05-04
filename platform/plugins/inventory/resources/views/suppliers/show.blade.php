@@ -13,46 +13,46 @@
                                 <div class="mt-2">{!! $supplier->status?->toHtml() !!}</div>
                             </div>
                             <div class="d-flex gap-2">
-                                @if (auth()->user()->hasPermission('inventory.suppliers.edit'))
-                                    <a class="btn btn-primary" href="{{ route('inventory.suppliers.edit', $supplier) }}">{{ trans('core/base::forms.edit') }}</a>
+                                @if (auth()->user()->hasPermission(\Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions::EDIT))
+                                    <a class="btn btn-primary" href="{{ route('inventory.suppliers.edit', $supplier->id) }}">{{ trans('core/base::forms.edit') }}</a>
                                 @endif
-                                @if (auth()->user()->hasPermission('inventory.suppliers.delete'))
-                                    {!! delete_button(route('inventory.suppliers.destroy', $supplier)) !!}
+                                @if (auth()->user()->hasPermission(\Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions::DESTROY))
+                                    {!! delete_button(route('inventory.suppliers.destroy', $supplier->id)) !!}
                                 @endif
                             </div>
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.type.label') }}:</strong> {{ $supplier->type->label() }}</div>
-                                <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.tax_code') }}:</strong> {{ $supplier->tax_code }}</div>
+                                <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.tax_code') }}:</strong> {{ $supplier->taxCode }}</div>
                                 <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.website') }}:</strong> {{ $supplier->website }}</div>
-                                <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.approval.requires_reapproval') }}:</strong> {{ $supplier->requires_reapproval ? 'Yes' : 'No' }}</div>
+                                <div class="col-md-3"><strong>{{ trans('plugins/inventory::inventory.supplier.approval.requires_reapproval') }}:</strong> {{ $supplier->requiresReapproval ? 'Yes' : 'No' }}</div>
                             </div>
                             <hr>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.created_by') }}:</strong>
-                                    {{ $supplier->creator?->name ?: '-' }}
+                                    {{ $supplier->creatorName ?: '-' }}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.created_at') }}:</strong>
-                                    {{ $supplier->created_at ? BaseHelper::formatDateTime($supplier->created_at) : '-' }}
+                                    {{ $supplier->createdAt ? BaseHelper::formatDateTime($supplier->createdAt) : '-' }}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.submitted_by') }}:</strong>
-                                    {{ $supplier->submitter?->name ?: '-' }}
+                                    {{ $supplier->submitterName ?: '-' }}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.submitted_at') }}:</strong>
-                                    {{ $supplier->submitted_at ? BaseHelper::formatDateTime($supplier->submitted_at) : '-' }}
+                                    {{ $supplier->submittedAt ? BaseHelper::formatDateTime($supplier->submittedAt) : '-' }}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.approved_by') }}:</strong>
-                                    {{ $supplier->approver?->name ?: '-' }}
+                                    {{ $supplier->approverName ?: '-' }}
                                 </div>
                                 <div class="col-md-3">
                                     <strong>{{ trans('plugins/inventory::inventory.supplier.approved_at') }}:</strong>
-                                    {{ $supplier->approved_at ? BaseHelper::formatDateTime($supplier->approved_at) : '-' }}
+                                    {{ $supplier->approvedAt ? BaseHelper::formatDateTime($supplier->approvedAt) : '-' }}
                                 </div>
                             </div>
                             <p>{{ $supplier->note }}</p>
@@ -70,7 +70,7 @@
                                 <div class="mb-3 border-bottom pb-2">
                                     <div class="d-flex justify-content-between">
                                         <strong>{{ $contact->name }}</strong>
-                                        @if($contact->is_primary)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.primary') }}</span>@endif
+                                        @if($contact->isPrimary)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.primary') }}</span>@endif
                                     </div>
                                     <div>{{ $contact->position }}</div>
                                     <div>{{ $contact->phone }}</div>
@@ -90,7 +90,7 @@
                                 <div class="mb-3 border-bottom pb-2">
                                     <div class="d-flex justify-content-between">
                                         <strong>{{ $address->type->label() }}</strong>
-                                        @if($address->is_default)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>@endif
+                                        @if($address->isDefault)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>@endif
                                     </div>
                                     <div>{{ $address->address }}</div>
                                 </div>
@@ -107,11 +107,11 @@
                             @forelse($supplier->banks as $bank)
                                 <div class="mb-3 border-bottom pb-2">
                                     <div class="d-flex justify-content-between">
-                                        <strong>{{ $bank->bank_name }}</strong>
-                                        @if($bank->is_default)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>@endif
+                                        <strong>{{ $bank->bankName }}</strong>
+                                        @if($bank->isDefault)<span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>@endif
                                     </div>
-                                    <div>{{ $bank->account_name }}</div>
-                                    <div>{{ $bank->account_number }}</div>
+                                    <div>{{ $bank->accountName }}</div>
+                                    <div>{{ $bank->accountNumber }}</div>
                                     <div>{{ $bank->branch }}</div>
                                 </div>
                             @empty
@@ -128,12 +128,12 @@
                     <table class="table table-striped">
                         <thead><tr><th>{{ trans('plugins/inventory::inventory.supplier.product') }}</th><th>{{ trans('plugins/inventory::inventory.supplier.purchase_price') }}</th><th>{{ trans('plugins/inventory::inventory.supplier.moq') }}</th><th>{{ trans('plugins/inventory::inventory.supplier.lead_time_days') }}</th></tr></thead>
                         <tbody>
-                        @forelse($supplier->supplierProducts as $item)
+                        @forelse($supplier->products as $item)
                             <tr>
-                                <td>{{ $item->product?->name }}</td>
-                                <td>{{ number_format((float) $item->purchase_price, 4) }}</td>
+                                <td>{{ $item->productName }}</td>
+                                <td>{{ number_format((float) $item->purchasePrice, 4) }}</td>
                                 <td>{{ $item->moq }}</td>
-                                <td>{{ $item->lead_time_days }}</td>
+                                <td>{{ $item->leadTimeDays }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="text-center text-muted">{{ trans('plugins/inventory::inventory.supplier.empty') }}</td></tr>
@@ -161,11 +161,11 @@
                         @forelse($supplier->approvals as $approval)
                             <tr>
                                 <td>{{ $approval->action }}</td>
-                                <td>{{ $approval->from_status }}</td>
-                                <td>{{ $approval->to_status }}</td>
+                                <td>{{ $approval->fromStatus }}</td>
+                                <td>{{ $approval->toStatus }}</td>
                                 <td>{{ $approval->note }}</td>
-                                <td>{{ $approval->actor?->name ?: '-' }}</td>
-                                <td>{{ $approval->acted_at ? BaseHelper::formatDateTime($approval->acted_at) : '-' }}</td>
+                                <td>{{ $approval->actorName ?: '-' }}</td>
+                                <td>{{ $approval->actedAt ? BaseHelper::formatDateTime($approval->actedAt) : '-' }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="6" class="text-center text-muted">{{ trans('plugins/inventory::inventory.supplier.empty') }}</td></tr>
