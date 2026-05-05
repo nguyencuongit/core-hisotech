@@ -62,9 +62,10 @@ class WarehouseProductController extends BaseController
     public function supplierProduct(WarehouseProductSupplierProductRequest $request, WarehouseProductUsecase $usecase): JsonResponse
     {
         abort_unless(auth()->user()?->hasPermission('warehouse.index'), 403);
-
+        $data = $usecase->supplierProductSuggestion(SupplierProductSuggestionDTO::fromRequest($request));
+        
         return response()->json([
-            'data' => $usecase->supplierProductSuggestion(SupplierProductSuggestionDTO::fromRequest($request)),
+            'data' => $data,
         ]);
     }
 }

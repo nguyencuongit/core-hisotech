@@ -7,9 +7,11 @@ use Botble\Base\Forms\Fields\SelectField;
 use Botble\Base\Forms\Fields\TextField;
 use Botble\Inventory\Domains\Transactions\Models\Export;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
-use Botble\Inventory\Domains\Transactions\Enums\DocumentStatusEnum;
+use Botble\Inventory\Enums\DocumentStatusEnum;
 use Botble\Inventory\Domains\Transactions\Enums\ExportTypeEnum;
 use Botble\Inventory\Domains\Transactions\Enums\PartnerTypeEnum;
+use Botble\Inventory\Domains\WarehouseStaff\Repositories\Interfaces\WarehouseStaffAssignmentInterface;
+use Botble\Inventory\Services\LocationService;
 use Botble\Inventory\Services\ProductFormService;
 
 
@@ -17,6 +19,9 @@ class ExportForm extends FormAbstract
 {
     public function setup(): void
     {   
+        $model = $this->getModel();
+        $export = $model instanceof Export ? $model : null;
+
         $query = Warehouse::query();
         $warehouseIds = inventory_warehouse_ids();
         $isAdmin = inventory_is_super_admin();
@@ -26,6 +31,34 @@ class ExportForm extends FormAbstract
         $warehouseChoices = $query
             ->pluck('name', 'id')
             ->all();
+
+        $requestedByChoices = [
+            '0' => '--- KhÃ¡c (nháº­p tay) ---',
+        ];
+
+        if ($export?->warehouse_id) {
+            $requestedByChoices += app(WarehouseStaffAssignmentInterface::class)
+                ->findByWarehouseIdStaff((int) $export->warehouse_id);
+        }
+
+        if ($export?->requested_by && ! array_key_exists($export->requested_by, $requestedByChoices)) {
+            $requestedByChoices[$export->requested_by] = $export->requested_by_name ?: sprintf('NhÃ¢n viÃªn #%s', $export->requested_by);
+        }
+
+        $locationService = app(LocationService::class);
+        $stateChoices = $locationService
+            ->showState()
+            ->pluck('name', 'id')
+            ->all();
+        $cityChoices = $export?->province_id
+            ? $locationService->showCity((int) $export->province_id)->pluck('name', 'id')->all()
+            : [];
+
+        if ($export?->ward_id && ! array_key_exists($export->ward_id, $cityChoices)) {
+            $city = $locationService->findCity((int) $export->ward_id);
+            $cityChoices[$export->ward_id] = $city?->name ?: sprintf('City #%s', $export->ward_id);
+        }
+
         $products = app(ProductFormService::class)->showProductForm();
         
         $this
@@ -201,13 +234,14 @@ class ExportForm extends FormAbstract
 
             ->add('requested_by', SelectField::class, [
                 'label' => 'Người yêu cầu',
-                'choices' => [
+                'choices' => $requestedByChoices + [
                     '0' => '--- Khác (nhập tay) ---',
                 ],
                 'empty_value' => 'Chọn người yêu cầu',
                 'attr' => [
                     'id' => 'requested-by-id',
                 ],
+                'selected' => $export?->requested_by,
                 'wrapper' => [
                     'class' => 'form-group col-md-6',
                 ],
@@ -356,7 +390,13 @@ class ExportForm extends FormAbstract
                 'html' => '<div class="row">',
             ])
 
-            ->add('province_id', TextField::class, [
+            ->add('province_id', SelectField::class, [
+                'choices' => $stateChoices,
+                'empty_value' => 'Chon tinh / thanh pho',
+                'attr' => [
+                    'id' => 'province-id',
+                ],
+                'selected' => $export?->province_id,
                 'label' => 'Tỉnh / Thành phố',
                 'wrapper' => [
                     'class' => 'form-group col-md-3',
@@ -364,8 +404,14 @@ class ExportForm extends FormAbstract
                 'required' => true,
             ])
 
-            ->add('ward_id', TextField::class, [
-                'label' => 'Phường / Xã',
+            ->add('ward_id', SelectField::class, [
+                'choices' => $cityChoices,
+                'empty_value' => 'Chon quan / huyen',
+                'attr' => [
+                    'id' => 'ward-id',
+                ],
+                'selected' => $export?->ward_id,
+                'label' => 'Quận / Huyện',
                 'wrapper' => [
                     'class' => 'form-group col-md-3',
                 ],
@@ -450,6 +496,7 @@ class ExportForm extends FormAbstract
 
             ->add('shipping_fee', 'number', [
                 'label' => 'Phí vận chuyển',
+                'value' => old('shipping_fee', $this->getModel()?->shipping_fee ?? 0),
                 'attr' => [
                     'min' => 0,
                     'step' => '0.01',

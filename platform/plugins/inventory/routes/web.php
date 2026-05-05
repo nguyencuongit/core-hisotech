@@ -21,10 +21,12 @@ use Botble\Inventory\Domains\Transactions\Http\Controllers\TransactionAjaxContro
 use Botble\Inventory\Domains\Packing\Http\Controllers\PackingController;
 use Botble\Inventory\Domains\Transfer\Http\Controllers\TransferController;
 use Botble\Inventory\Domains\Return\Http\Controllers\ReturnController;
+use Botble\Inventory\Domains\Stock\Http\Controllers\StockController;
 
 
 
 use Botble\Inventory\Http\Controllers\InventoryController;
+use Botble\Inventory\Http\Controllers\InventoryAjaxController;
 use Illuminate\Support\Facades\Route;
 
 AdminHelper::registerRoutes(function () {
@@ -369,6 +371,49 @@ AdminHelper::registerRoutes(function () {
                 'permission' => 'return.destroy',
             ]);
         });
+
+
+        // stock
+        Route::group([
+            'prefix' => 'stock',
+            'as' => 'stock.',
+        ], function () {
+            Route::match(['GET', 'POST'], '/', [
+                'uses' => StockController::class . '@index',
+                'as' => 'index',
+                'permission' => 'stock.index',
+            ]);
+
+            Route::get('/create', [
+                'uses' => StockController::class . '@create',
+                'as' => 'create',
+                'permission' => 'stock.create',
+            ]);
+
+            Route::post('/create', [
+                'uses' => StockController::class . '@store',
+                'as' => 'store',
+                'permission' => 'stock.create',
+            ]);
+
+            Route::get('/edit/{stock}', [
+                'uses' => StockController::class . '@edit',
+                'as' => 'edit',
+                'permission' => 'stock.edit',
+            ]);
+
+            Route::post('/edit/{stock}', [
+                'uses' => StockController::class . '@update',
+                'as' => 'update',
+                'permission' => 'stock.edit',
+            ]);
+
+            Route::delete('/{stock}', [
+                'uses' => StockController::class . '@destroy',
+                'as' => 'destroy',
+                'permission' => 'stock.destroy',
+            ]);
+        });
     });
 });
 
@@ -380,4 +425,9 @@ Route::get('ajax/warehouses/{warehouse}/staff', [
 Route::get('ajax/partner-type/{type}', [
     'uses' => TransactionAjaxController::class . '@getMenber',
     'as' => 'ajax.partner-type',
+]);
+
+Route::get('ajax/states/{state}/cities', [
+    'uses' => InventoryAjaxController::class . '@getCitiesByState',
+    'as' => 'ajax.states.cities',
 ]);

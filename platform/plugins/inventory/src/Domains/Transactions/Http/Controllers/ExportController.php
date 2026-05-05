@@ -7,7 +7,6 @@ use Botble\Base\Http\Controllers\BaseController;
 use Botble\Inventory\Domains\Transactions\Tables\ExportTable;
 use Botble\Inventory\Domains\Transactions\Forms\ExportForm;
 use Botble\Inventory\Domains\Transactions\Models\Export;
-use Botble\Inventory\Domains\Transactions\Services\ExportShipmentService;
 use Illuminate\Http\Request;
 
 class ExportController extends BaseController
@@ -23,7 +22,7 @@ class ExportController extends BaseController
     {
         $this->pageTitle(trans('plugins/inventory::inventory.transactions.export.name'));
 
-        return $table->renderTable();
+        return $table->render('plugins/inventory::tables.export_table');
     }
 
     public function create()
@@ -52,13 +51,11 @@ class ExportController extends BaseController
         return ExportForm::createFromModel($export)->renderForm();
     }
 
-    public function update(Export $export, Request $request, ExportShipmentService $shipmentService)
+    public function update(Export $export, Request $request)
     {
         $form = ExportForm::createFromModel($export)
             ->setRequest($request)
             ->save();
-
-        $shipmentService->shipPackedItems($form->getModel());
 
         return $this
             ->httpResponse()

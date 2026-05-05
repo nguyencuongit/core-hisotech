@@ -6,9 +6,12 @@ use Botble\Base\Models\BaseModel;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Import extends BaseModel
 {
+    use SoftDeletes;
+
     protected $table = 'inv_imports';
 
     protected $fillable = [

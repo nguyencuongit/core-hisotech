@@ -7,14 +7,20 @@ use Botble\Base\Forms\Fields\SelectField;
 use Botble\Base\Forms\Fields\TextField;
 use Botble\Inventory\Domains\Transactions\Models\Import as ImportModel;
 use Botble\Inventory\Domains\Warehouse\Models\Warehouse;
-use Botble\Inventory\Domains\Transactions\Enums\DocumentStatusEnum;
+use Botble\Inventory\Enums\DocumentStatusEnum;
 use Botble\Inventory\Domains\Transactions\Enums\ImportTypeEnum;
 use Botble\Inventory\Domains\Transactions\Enums\PartnerTypeEnum;
+use Botble\Inventory\Domains\WarehouseStaff\Repositories\Interfaces\WarehouseStaffAssignmentInterface;
+use Botble\Inventory\Services\LocationService;
+use Botble\Inventory\Services\ProductFormService;
 
 class ImportForm extends FormAbstract
 {
     public function setup(): void
     {
+        $model = $this->getModel();
+        $import = $model instanceof ImportModel ? $model : null;
+
         $query = Warehouse::query();
         $warehouseIds = inventory_warehouse_ids();
         if (! inventory_is_super_admin() && ! empty($warehouseIds)) {
@@ -23,8 +29,33 @@ class ImportForm extends FormAbstract
         $warehouseChoices = $query
             ->pluck('name', 'id')
             ->all();
-        $staffChoices = [1=>'sda',2=>'fdsfsdfsdf'];
+        $requestedByChoices = [
+            '0' => '--- Khác (Nhập tay) ---',
+        ];
 
+        if ($import?->warehouse_id) {
+            $requestedByChoices += app(WarehouseStaffAssignmentInterface::class)
+                ->findByWarehouseIdStaff((int) $import->warehouse_id);
+        }
+
+        if ($import?->requested_by && ! array_key_exists($import->requested_by, $requestedByChoices)) {
+            $requestedByChoices[$import->requested_by] = $import->requested_by_name ?: sprintf('NhÃ¢n viÃªn #%s', $import->requested_by);
+        }
+        $locationService = app(LocationService::class);
+        $stateChoices = $locationService
+            ->showState()
+            ->pluck('name', 'id')
+            ->all();
+        $cityChoices = $import?->province_id
+            ? $locationService->showCity((int) $import->province_id)->pluck('name', 'id')->all()
+            : [];
+
+        if ($import?->ward_id && ! array_key_exists($import->ward_id, $cityChoices)) {
+            $city = $locationService->findCity((int) $import->ward_id);
+            $cityChoices[$import->ward_id] = $city?->name ?: sprintf('City #%s', $import->ward_id);
+        }
+
+        $products = app(ProductFormService::class)->showProductForm();
         $this
             ->model(ImportModel::class)
             ->template('plugins/inventory::forms.full-width-form')
@@ -207,13 +238,14 @@ class ImportForm extends FormAbstract
 
             ->add('requested_by', SelectField::class, [
                 'label' => 'Người yêu cầu',
-                'choices' => [
+                'choices' => $requestedByChoices + [
                     '0' => '--- Khác (nhập tay) ---',
                 ],
                 'empty_value' => 'Chọn người yêu cầu',
                 'attr' => [
                     'id' => 'requested-by-id',
                 ],
+                'selected' => $import?->requested_by,
                 'wrapper' => [
                     'class' => 'form-group col-md-6',
                 ],
@@ -361,15 +393,27 @@ class ImportForm extends FormAbstract
             ->add('row_partner_3_open', 'html', [
                 'html' => '<div class="row">',
             ])
-            ->add('province_id', TextField::class, [
+            ->add('province_id', SelectField::class, [
+                'choices' => $stateChoices,
+                'empty_value' => 'Chon tinh / thanh pho',
+                'attr' => [
+                    'id' => 'province-id',
+                ],
+                'selected' => $import?->province_id,
                 'label' => 'Tỉnh / Thành phố',
                 'wrapper' => [
                     'class' => 'form-group col-md-4',
                 ],
                 'required' => true,
             ])
-            ->add('ward_id', TextField::class, [
-                'label' => 'Phường / Xã',
+            ->add('ward_id', SelectField::class, [
+                'choices' => $cityChoices,
+                'empty_value' => 'Chon quan / huyen',
+                'attr' => [
+                    'id' => 'ward-id',
+                ],
+                'selected' => $import?->ward_id,
+                'label' => 'Quận / Huyện',
                 'wrapper' => [
                     'class' => 'form-group col-md-4',
                 ],
@@ -439,16 +483,15 @@ class ImportForm extends FormAbstract
                 'required' => true,
             ])
 
-            ->add('receiver_id', TextField::class, [
-                'label' => 'Mã người nhận',
-                'attr' => [
-                    'placeholder' => 'ID nhân sự nếu có',
-                ],
-                'wrapper' => [
-                    'class' => 'form-group col-md-4',
-                ],
-                'required' => true,
-            ])
+            // ->add('receiver_id', TextField::class, [
+            //     'label' => 'Mã người nhận',
+            //     'attr' => [
+            //         'placeholder' => 'ID nhân sự nếu có',
+            //     ],
+            //     'wrapper' => [
+            //         'class' => 'form-group col-md-4',
+            //     ],
+            // ])
 
             ->add('row_receiver_1_close', 'html', [
                 'html' => '</div>',
@@ -475,7 +518,7 @@ class ImportForm extends FormAbstract
 
             ->add('items_prd', 'html', [
                 'html' => view('plugins/inventory::forms.partials.form-table', [
-                    'model' => $this->getModel(),
+                    'model' => $products,
                 ])->render(),
             ]);
     }

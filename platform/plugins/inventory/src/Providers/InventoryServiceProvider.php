@@ -17,6 +17,7 @@ use Botble\Inventory\Domains\Packing\Providers\PackingProvider;
 use Botble\Inventory\Domains\Transfer\Providers\TransferProvider;
 use Botble\Inventory\Domains\Report\Providers\ReportProvider;
 use Botble\Inventory\Domains\Return\Providers\ReturnProvider;
+use Botble\Inventory\Domains\Stock\Providers\StockProvider;
 
 use Illuminate\Routing\Router;
 
@@ -97,6 +98,7 @@ class InventoryServiceProvider extends ServiceProvider
         $this->app->register(TransferProvider::class);
         $this->app->register(ReportProvider::class);
         $this->app->register(ReturnProvider::class);
+        $this->app->register(StockProvider::class);
 
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('inventory.context', InventoryContextMiddleware::class);
