@@ -116,6 +116,10 @@
         const type = document.getElementById('document-type');
         const wrapper = document.getElementById('type-note-wrapper');
 
+        if (! type || ! wrapper) {
+            return;
+        }
+
         function toggle() {
             if (type.value === 'manual') {
                 wrapper.classList.remove('d-none');
@@ -129,46 +133,20 @@
     });
 
     document.addEventListener('DOMContentLoaded', function () {
-        const select = document.getElementById('requested-by-id');
-        const wrapper = document.getElementById('requested-by-name-wrapper');
-        const input = document.getElementById('requested-by-name');
-
-        function toggleRequestedBy() {
-            const selectedText = select.options[select.selectedIndex]?.text || '';
-
-            if (select.value === '0') {
-                wrapper.classList.remove('d-none');
-                input.value = '';
-                input.removeAttribute('readonly');
-                input.setAttribute('required', 'required');
-                return;
-            }
-
-            if (select.value) {
-                wrapper.classList.add('d-none');
-                input.value = selectedText;
-                input.setAttribute('readonly', 'readonly');
-                input.removeAttribute('required');
-                return;
-            }
-
-            wrapper.classList.add('d-none');
-            input.value = '';
-            input.removeAttribute('readonly');
-            input.removeAttribute('required');
-        }
-
-        select.addEventListener('change', toggleRequestedBy);
-        toggleRequestedBy();
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
         const warehouseSelect = document.getElementById('warehouse-id');
         const requestedSelect = document.getElementById('requested-by-id');
         const requestedNameWrapper = document.getElementById('requested-by-name-wrapper');
         const requestedNameInput = document.getElementById('requested-by-name');
 
-        function resetRequestedBy() {
+        if (! requestedSelect || ! requestedNameWrapper || ! requestedNameInput) {
+            return;
+        }
+
+        const initialRequestedValue = String(requestedSelect.value ?? '');
+        const initialRequestedLabel = requestedSelect.options[requestedSelect.selectedIndex]?.text || '';
+        let manualRequestedName = initialRequestedValue === '0' ? requestedNameInput.value : '';
+
+        function resetRequestedBy(selectedValue = '') {
             requestedSelect.innerHTML = '';
 
             const emptyOption = new Option('Chọn người yêu cầu', '');
@@ -177,27 +155,30 @@
             const otherOption = new Option('--- Khác (nhập tay) ---', '0');
             requestedSelect.appendChild(otherOption);
 
-            requestedNameWrapper.classList.add('d-none');
-            requestedNameInput.value = '';
-            requestedNameInput.removeAttribute('required');
+            requestedSelect.value = selectedValue;
+
         }
 
-        function toggleRequestedName() {
-            const selectedText = requestedSelect.options[requestedSelect.selectedIndex]?.text || '';
-
+        function syncRequestedNameVisibility(preserveManualName = false) {
             if (requestedSelect.value === '0') {
                 requestedNameWrapper.classList.remove('d-none');
-                requestedNameInput.value = '';
+
+                if (requestedNameInput.hasAttribute('readonly')) {
+                    requestedNameInput.value = preserveManualName ? manualRequestedName : '';
+                }
+
                 requestedNameInput.removeAttribute('readonly');
                 requestedNameInput.setAttribute('required', 'required');
+
                 return;
             }
 
             if (requestedSelect.value) {
                 requestedNameWrapper.classList.add('d-none');
-                requestedNameInput.value = selectedText;
+                requestedNameInput.value = requestedSelect.options[requestedSelect.selectedIndex]?.text || '';
                 requestedNameInput.setAttribute('readonly', 'readonly');
                 requestedNameInput.removeAttribute('required');
+
                 return;
             }
 
@@ -207,10 +188,12 @@
             requestedNameInput.removeAttribute('required');
         }
 
-        async function loadStaffByWarehouse(warehouseId) {
-            resetRequestedBy();
+        async function loadStaffByWarehouse(warehouseId, selectedValue = '') {
+            resetRequestedBy(selectedValue);
 
-            if (!warehouseId) {
+            if (! warehouseId) {
+                syncRequestedNameVisibility(selectedValue === '0');
+
                 return;
             }
 
@@ -225,29 +208,57 @@
 
                 const result = await response.json();
 
-                if (!result.data) {
+                if (! result.data) {
                     return;
                 }
 
+                let hasSelectedOption = selectedValue === '' || selectedValue === '0';
+
                 Object.entries(result.data).forEach(([id, name]) => {
-                    requestedSelect.appendChild(new Option(name, id));
+                    const isSelected = String(id) === selectedValue;
+
+                    if (isSelected) {
+                        hasSelectedOption = true;
+                    }
+
+                    requestedSelect.appendChild(new Option(name, id, false, isSelected));
                 });
+
+                if (selectedValue && selectedValue !== '0' && ! hasSelectedOption && initialRequestedLabel) {
+                    requestedSelect.appendChild(new Option(initialRequestedLabel, selectedValue, false, true));
+                }
+
+                requestedSelect.value = selectedValue;
             } catch (e) {
                 console.error(e);
+            } finally {
+                syncRequestedNameVisibility(selectedValue === '0');
             }
         }
 
-        warehouseSelect.addEventListener('change', function () {
-            loadStaffByWarehouse(this.value);
+        requestedNameInput.addEventListener('input', function () {
+            if (requestedSelect.value === '0') {
+                manualRequestedName = this.value;
+            }
         });
 
-        requestedSelect.addEventListener('change', toggleRequestedName);
+        requestedSelect.addEventListener('change', function () {
+            syncRequestedNameVisibility(!! manualRequestedName);
+        });
 
-        if (warehouseSelect.value) {
-            loadStaffByWarehouse(warehouseSelect.value);
+        if (warehouseSelect) {
+            warehouseSelect.addEventListener('change', function () {
+                loadStaffByWarehouse(this.value);
+            });
+
+            if (warehouseSelect.value) {
+                loadStaffByWarehouse(warehouseSelect.value, initialRequestedValue);
+
+                return;
+            }
         }
 
-        toggleRequestedName();
+        syncRequestedNameVisibility(initialRequestedValue === '0');
     });
 
 
@@ -257,15 +268,23 @@
         const partnerType = document.getElementById('partner-type');
         const partnerId = document.getElementById('partner-id');
 
-        function resetPartner() {
+        if (! partnerType || ! partnerId) {
+            return;
+        }
+
+        const initialPartnerId = String(partnerId.value ?? '');
+        const initialPartnerLabel = partnerId.options[partnerId.selectedIndex]?.text || '';
+
+        function resetPartner(selectedValue = '') {
             partnerId.innerHTML = '';
+            partnerId.value = selectedValue;
             partnerId.appendChild(new Option('Chọn đối tượng', ''));
         }
 
-        async function loadPartnerByType(type) {
-            resetPartner();
+        async function loadPartnerByType(type, selectedValue = '') {
+            resetPartner(selectedValue);
 
-            if (!type) {
+            if (! type) {
                 return;
             }
 
@@ -279,13 +298,27 @@
 
                 const result = await response.json();
 
-                if (!result.data) {
+                if (! result.data) {
                     return;
                 }
 
+                let hasSelectedOption = selectedValue === '';
+
                 Object.entries(result.data).forEach(([id, name]) => {
-                    partnerId.appendChild(new Option(name, id));
+                    const isSelected = String(id) === selectedValue;
+
+                    if (isSelected) {
+                        hasSelectedOption = true;
+                    }
+
+                    partnerId.appendChild(new Option(name, id, false, isSelected));
                 });
+
+                if (selectedValue && ! hasSelectedOption && initialPartnerLabel) {
+                    partnerId.appendChild(new Option(initialPartnerLabel, selectedValue, false, true));
+                }
+
+                partnerId.value = selectedValue;
             } catch (e) {
                 console.error('Load partner error:', e);
             }
@@ -296,7 +329,76 @@
         });
 
         if (partnerType.value) {
-            loadPartnerByType(partnerType.value);
+            loadPartnerByType(partnerType.value, initialPartnerId);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const provinceSelect = document.getElementById('province-id');
+        const wardSelect = document.getElementById('ward-id');
+
+        if (! provinceSelect || ! wardSelect) {
+            return;
+        }
+
+        const initialWardId = String(wardSelect.value ?? '');
+        const initialWardLabel = wardSelect.options[wardSelect.selectedIndex]?.text || '';
+
+        function resetWard(selectedValue = '') {
+            wardSelect.innerHTML = '';
+            wardSelect.appendChild(new Option('Chon quan / huyen', '', false, selectedValue === ''));
+            wardSelect.value = selectedValue;
+        }
+
+        async function loadWardsByProvince(provinceId, selectedValue = '') {
+            resetWard(selectedValue);
+
+            if (! provinceId) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ajax/states/${provinceId}/cities`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const result = await response.json();
+
+                if (! result.data) {
+                    return;
+                }
+
+                let hasSelectedOption = selectedValue === '';
+
+                Object.entries(result.data).forEach(([id, name]) => {
+                    const isSelected = String(id) === selectedValue;
+
+                    if (isSelected) {
+                        hasSelectedOption = true;
+                    }
+
+                    wardSelect.appendChild(new Option(name, id, false, isSelected));
+                });
+
+                if (selectedValue && ! hasSelectedOption && initialWardLabel) {
+                    wardSelect.appendChild(new Option(initialWardLabel, selectedValue, false, true));
+                }
+
+                wardSelect.value = selectedValue;
+            } catch (e) {
+                console.error('Load wards error:', e);
+            }
+        }
+
+        provinceSelect.addEventListener('change', function () {
+            loadWardsByProvince(this.value);
+        });
+
+        if (provinceSelect.value) {
+            loadWardsByProvince(provinceSelect.value, initialWardId);
         }
     });
 </script>

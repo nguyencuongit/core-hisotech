@@ -245,4 +245,7 @@ return [
     'return' => [
         'name' => 'Return',
     ],
+    'stock' => [
+        'name' => 'Stock',
+    ]
 ];

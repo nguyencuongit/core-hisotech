@@ -92,7 +92,7 @@ inv_internal_transfers_item
 
 
 
-inv_stock_movements (lịch sử)
+inv_stock_movements (lịch sử) (làm cuối cùng)
 
 
 inv_stock_adjustments (lưu phiếu khi thực tế khác với trên dữ liệu (mất hàng, vỡ hàng , thừa hàng phải điều chỉnh ....))
@@ -100,6 +100,10 @@ inv_stock_adjustment_items
 
 
 inv_stocks (tồn hiện tại)
+    id, warehouse_id, product_id, quantity,reserved_qty, available_qty, note, unit_id, unit_name,
+inv_stock_details (sp)
+    id, stock_id, lot_no, expiry_date, warehouse_location_id, quantity, reserved_qty, available_qty, note, avg_cost
+
 inv_stock_movements (tại sao tồn kho đó) 
     #1: before 20 | +50 | after 70
     #2: before 70 | -10 | after 60
@@ -199,3 +203,7 @@ src/Domains/WarehouseProduct/Repositories/Eloquent
 src/Domains/WarehouseProduct/Repositories/Interfaces
 src/Domains/WarehouseProduct/Providers
 resources/views/warehouse-products
+
+
+
+phiếu chuyển kho -> export -> packing ( thông tin vị trí lấy của sp) -> logistic -> import (vị trí của sp vào)
