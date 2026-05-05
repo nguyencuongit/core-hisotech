@@ -1,5 +1,7 @@
 <?php
 
+use Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions;
+
 return [
     [
         'name' => 'Inventories',
@@ -7,48 +9,48 @@ return [
     ],
     [
         'name' => 'Suppliers',
-        'flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::INDEX,
         'parent_flag' => 'inventory',
     ],
     [
         'name' => 'Create',
-        'flag' => 'inventory.suppliers.create',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::CREATE,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Show',
-        'flag' => 'inventory.suppliers.show',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::SHOW,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Edit',
-        'flag' => 'inventory.suppliers.edit',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::EDIT,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Delete',
-        'flag' => 'inventory.suppliers.delete',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::DESTROY,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Manage contacts',
-        'flag' => 'inventory.suppliers.manage_contacts',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::MANAGE_CONTACTS,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Manage addresses',
-        'flag' => 'inventory.suppliers.manage_addresses',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::MANAGE_ADDRESSES,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Manage banks',
-        'flag' => 'inventory.suppliers.manage_banks',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::MANAGE_BANKS,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Manage products',
-        'flag' => 'inventory.suppliers.manage_products',
-        'parent_flag' => 'inventory.suppliers.index',
+        'flag' => SupplierPermissions::MANAGE_PRODUCTS,
+        'parent_flag' => SupplierPermissions::INDEX,
     ],
     [
         'name' => 'Goods receipts',

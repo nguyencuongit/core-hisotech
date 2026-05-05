@@ -27,7 +27,7 @@
                     </a>
 
                     @if(in_array($supplierStatusValue, ['draft', 'rejected', 'inactive'], true))
-                        <form method="POST" action="{{ route('inventory.suppliers.submit', $supplier) }}">
+                        <form method="POST" action="{{ route('inventory.suppliers.submit', $supplier->id) }}">
                             @csrf
                             <button class="btn supplier-btn-secondary" type="submit">
                                 {{ trans('plugins/inventory::inventory.supplier.approval.submit') }}
@@ -36,14 +36,14 @@
                     @endif
 
                     @if($canApproveSupplier && $supplierStatusValue === 'pending_approval')
-                        <a class="btn supplier-btn-secondary" href="{{ route('inventory.suppliers.approval', $supplier) }}">
+                        <a class="btn supplier-btn-secondary" href="{{ route('inventory.suppliers.approval', $supplier->id) }}">
                             {{ trans('plugins/inventory::inventory.supplier.approval_page.title') }}
                         </a>
                     @endif
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('inventory.suppliers.update', $supplier) }}">
+            <form method="POST" action="{{ route('inventory.suppliers.update', $supplier->id) }}">
                 @csrf
                 @method('PUT')
                 @include('plugins/inventory::suppliers.partials.form', ['supplier' => $supplier])

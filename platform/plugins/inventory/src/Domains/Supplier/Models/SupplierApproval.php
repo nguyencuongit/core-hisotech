@@ -2,7 +2,6 @@
 
 namespace Botble\Inventory\Domains\Supplier\Models;
 
-use Botble\ACL\Models\User;
 use Botble\Base\Models\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -33,8 +32,4 @@ class SupplierApproval extends BaseModel
         return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 
-    public function actor(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'acted_by');
-    }
 }

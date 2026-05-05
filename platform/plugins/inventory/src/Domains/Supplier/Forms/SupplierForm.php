@@ -20,6 +20,7 @@ class SupplierForm extends FormAbstract
     public function setup(): void
     {
         $this
+            // FRAMEWORK-BOUNDARY: Botble requires Eloquent Model here.
             ->model(Supplier::class)
             ->setValidatorClass(SupplierRequest::class)
             ->columns()

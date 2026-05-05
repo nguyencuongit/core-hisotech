@@ -2,37 +2,36 @@
 
 namespace Botble\Inventory\Domains\Supplier\Repositories\Interfaces;
 
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
-use Botble\Inventory\Domains\Supplier\Models\SupplierApproval;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
 use Botble\Support\Repositories\Interfaces\RepositoryInterface;
 
 interface SupplierInterface extends RepositoryInterface
 {
-    public function createSupplier(array $attributes): Supplier;
+    public function createSupplier(array $attributes): SupplierEntity;
 
-    public function updateSupplier(Supplier $supplier, array $attributes): Supplier;
+    public function updateSupplier(int|string $supplierId, array $attributes): SupplierEntity;
 
-    public function deleteSupplier(Supplier $supplier): bool;
+    public function deleteSupplier(int|string $supplierId): bool;
 
-    public function loadForShow(Supplier $supplier): Supplier;
+    public function readForShow(int|string $supplierId): SupplierEntity;
 
-    public function loadForApproval(Supplier $supplier): Supplier;
+    public function readForApproval(int|string $supplierId): SupplierEntity;
 
-    public function loadForEdit(Supplier $supplier): Supplier;
+    public function readForEdit(int|string $supplierId): SupplierEntity;
 
-    public function reload(Supplier $supplier, array $with = []): Supplier;
+    public function reload(int|string $supplierId, array $with = []): SupplierEntity;
 
-    public function deleteChildren(Supplier $supplier): void;
+    public function deleteChildren(int|string $supplierId): void;
 
-    public function createContact(Supplier $supplier, array $attributes): void;
+    public function createContact(int|string $supplierId, array $attributes): void;
 
-    public function createAddress(Supplier $supplier, array $attributes): void;
+    public function createAddress(int|string $supplierId, array $attributes): void;
 
-    public function createBank(Supplier $supplier, array $attributes): void;
+    public function createBank(int|string $supplierId, array $attributes): void;
 
-    public function updateOrCreateProduct(Supplier $supplier, int $productId, array $attributes): void;
+    public function updateOrCreateProduct(int|string $supplierId, int $productId, array $attributes): void;
 
-    public function createApproval(Supplier $supplier, array $attributes): SupplierApproval;
+    public function createApproval(int|string $supplierId, array $attributes): void;
 
     public function codeExists(string $code): bool;
 }

@@ -3,8 +3,8 @@
 namespace Botble\Inventory\Domains\Supplier\Models;
 
 use Botble\Base\Models\BaseModel;
-use Botble\Ecommerce\Models\Product;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Botble\Inventory\Domains\Supplier\Models\Supplier;
 
 class SupplierProduct extends BaseModel
 {
@@ -33,10 +33,5 @@ class SupplierProduct extends BaseModel
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class, 'product_id');
     }
 }

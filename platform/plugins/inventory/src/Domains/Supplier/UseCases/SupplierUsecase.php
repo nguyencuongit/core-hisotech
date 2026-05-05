@@ -11,7 +11,7 @@ use Botble\Inventory\Domains\Supplier\Actions\UpdateSupplierAction;
 use Botble\Inventory\Domains\Supplier\DTO\SupplierApprovalDTO;
 use Botble\Inventory\Domains\Supplier\DTO\SupplierDTO;
 use Botble\Inventory\Domains\Supplier\DTO\SupplierProductSearchDTO;
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\ProductReadInterface;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\SupplierInterface;
 
@@ -29,49 +29,49 @@ class SupplierUsecase
     ) {
     }
 
-    public function create(SupplierDTO $dto): Supplier
+    public function create(SupplierDTO $dto): SupplierEntity
     {
         return $this->createAction->execute($dto);
     }
 
-    public function update(int|string $supplierId, SupplierDTO $dto): Supplier
+    public function update(int|string $supplierId, SupplierDTO $dto): SupplierEntity
     {
-        return $this->updateAction->execute($this->findSupplierOrFail($supplierId), $dto);
+        return $this->updateAction->execute($this->suppliers->readForEdit($supplierId), $dto);
     }
 
     public function delete(int|string $supplierId): bool
     {
-        return $this->deleteAction->execute($this->findSupplierOrFail($supplierId));
+        return $this->deleteAction->execute($this->suppliers->readForEdit($supplierId));
     }
 
-    public function submit(int|string $supplierId, SupplierApprovalDTO $dto): Supplier
+    public function submit(int|string $supplierId, SupplierApprovalDTO $dto): SupplierEntity
     {
-        return $this->submitAction->execute($this->findSupplierOrFail($supplierId), $dto);
+        return $this->submitAction->execute($this->suppliers->readForEdit($supplierId), $dto);
     }
 
-    public function approve(int|string $supplierId, SupplierApprovalDTO $dto): Supplier
+    public function approve(int|string $supplierId, SupplierApprovalDTO $dto): SupplierEntity
     {
-        return $this->approveAction->execute($this->findSupplierOrFail($supplierId), $dto);
+        return $this->approveAction->execute($this->suppliers->readForEdit($supplierId), $dto);
     }
 
-    public function reject(int|string $supplierId, SupplierApprovalDTO $dto): Supplier
+    public function reject(int|string $supplierId, SupplierApprovalDTO $dto): SupplierEntity
     {
-        return $this->rejectAction->execute($this->findSupplierOrFail($supplierId), $dto);
+        return $this->rejectAction->execute($this->suppliers->readForEdit($supplierId), $dto);
     }
 
-    public function loadForShow(int|string $supplierId): Supplier
+    public function loadForShow(int|string $supplierId): SupplierEntity
     {
-        return $this->suppliers->loadForShow($this->findSupplierOrFail($supplierId));
+        return $this->suppliers->readForShow($supplierId);
     }
 
-    public function loadForApproval(int|string $supplierId): Supplier
+    public function loadForApproval(int|string $supplierId): SupplierEntity
     {
-        return $this->suppliers->loadForApproval($this->findSupplierOrFail($supplierId));
+        return $this->suppliers->readForApproval($supplierId);
     }
 
-    public function loadForEdit(int|string $supplierId): Supplier
+    public function loadForEdit(int|string $supplierId): SupplierEntity
     {
-        return $this->suppliers->loadForEdit($this->findSupplierOrFail($supplierId));
+        return $this->suppliers->readForEdit($supplierId);
     }
 
     public function searchProducts(SupplierProductSearchDTO $dto): array
@@ -106,10 +106,5 @@ class SupplierUsecase
             })
             ->values()
             ->all();
-    }
-
-    protected function findSupplierOrFail(int|string $supplierId): Supplier
-    {
-        return $this->suppliers->findOrFail($supplierId);
     }
 }

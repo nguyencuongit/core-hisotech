@@ -3,6 +3,7 @@
 use Botble\Base\Facades\AdminHelper;
 use Botble\Inventory\Domains\GoodsReceipt\Http\Controllers\GoodsReceiptController;
 use Botble\Inventory\Domains\Supplier\Http\Controllers\SupplierController;
+use Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\PalletController;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseController;
 use Botble\Inventory\Domains\Warehouse\Http\Controllers\WarehouseLocationController;
@@ -82,18 +83,18 @@ AdminHelper::registerRoutes(function () {
         });
 
         Route::group(['prefix' => 'suppliers', 'as' => 'suppliers.'], function () {
-            Route::match(['GET', 'POST'], '/', ['uses' => SupplierController::class . '@index', 'as' => 'index', 'permission' => 'inventory.suppliers.index']);
-            Route::get('/products/search', ['uses' => SupplierController::class . '@searchProducts', 'as' => 'products.search', 'permission' => 'inventory.suppliers.index']);
-            Route::get('/create', ['uses' => SupplierController::class . '@create', 'as' => 'create', 'permission' => 'inventory.suppliers.create']);
-            Route::post('/create', ['uses' => SupplierController::class . '@store', 'as' => 'store', 'permission' => 'inventory.suppliers.create']);
-            Route::get('/approval/{supplier}', ['uses' => SupplierController::class . '@approval', 'as' => 'approval', 'permission' => 'inventory.suppliers.show']);
-            Route::get('/edit/{supplier}', ['uses' => SupplierController::class . '@edit', 'as' => 'edit', 'permission' => 'inventory.suppliers.edit']);
-            Route::match(['POST', 'PUT'], '/edit/{supplier}', ['uses' => SupplierController::class . '@update', 'as' => 'update', 'permission' => 'inventory.suppliers.edit']);
-            Route::get('/{supplier}', ['uses' => SupplierController::class . '@show', 'as' => 'show', 'permission' => 'inventory.suppliers.show']);
-            Route::delete('/{supplier}', ['uses' => SupplierController::class . '@destroy', 'as' => 'destroy', 'permission' => 'inventory.suppliers.delete']);
-            Route::post('/{supplier}/submit', ['uses' => SupplierController::class . '@submit', 'as' => 'submit', 'permission' => 'inventory.suppliers.edit']);
-            Route::post('/{supplier}/approve', ['uses' => SupplierController::class . '@approve', 'as' => 'approve', 'permission' => 'inventory.suppliers.edit']);
-            Route::post('/{supplier}/reject', ['uses' => SupplierController::class . '@reject', 'as' => 'reject', 'permission' => 'inventory.suppliers.edit']);
+            Route::match(['GET', 'POST'], '/', ['uses' => SupplierController::class . '@index', 'as' => 'index', 'permission' => SupplierPermissions::INDEX]);
+            Route::get('/products/search', ['uses' => SupplierController::class . '@searchProducts', 'as' => 'products.search', 'permission' => SupplierPermissions::INDEX]);
+            Route::get('/create', ['uses' => SupplierController::class . '@create', 'as' => 'create', 'permission' => SupplierPermissions::CREATE]);
+            Route::post('/create', ['uses' => SupplierController::class . '@store', 'as' => 'store', 'permission' => SupplierPermissions::CREATE]);
+            Route::get('/approval/{supplier}', ['uses' => SupplierController::class . '@approval', 'as' => 'approval', 'permission' => SupplierPermissions::SHOW]);
+            Route::get('/edit/{supplier}', ['uses' => SupplierController::class . '@edit', 'as' => 'edit', 'permission' => SupplierPermissions::EDIT]);
+            Route::match(['POST', 'PUT'], '/edit/{supplier}', ['uses' => SupplierController::class . '@update', 'as' => 'update', 'permission' => SupplierPermissions::EDIT]);
+            Route::get('/{supplier}', ['uses' => SupplierController::class . '@show', 'as' => 'show', 'permission' => SupplierPermissions::SHOW]);
+            Route::delete('/{supplier}', ['uses' => SupplierController::class . '@destroy', 'as' => 'destroy', 'permission' => SupplierPermissions::DESTROY]);
+            Route::post('/{supplier}/submit', ['uses' => SupplierController::class . '@submit', 'as' => 'submit', 'permission' => SupplierPermissions::EDIT]);
+            Route::post('/{supplier}/approve', ['uses' => SupplierController::class . '@approve', 'as' => 'approve', 'permission' => SupplierPermissions::EDIT]);
+            Route::post('/{supplier}/reject', ['uses' => SupplierController::class . '@reject', 'as' => 'reject', 'permission' => SupplierPermissions::EDIT]);
         });
 
         Route::group(['prefix' => 'goods-receipts', 'as' => 'goods-receipts.'], function () {
