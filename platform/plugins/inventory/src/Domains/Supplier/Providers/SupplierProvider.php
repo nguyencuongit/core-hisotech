@@ -5,7 +5,7 @@ namespace Botble\Inventory\Domains\Supplier\Providers;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions;
 use Botble\Inventory\Domains\Supplier\Repositories\Eloquent\ProductReadRepository;
 use Botble\Inventory\Domains\Supplier\Repositories\Eloquent\SupplierRepository;
 use Botble\Inventory\Domains\Supplier\Repositories\Interfaces\ProductReadInterface;
@@ -17,9 +17,7 @@ class SupplierProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->app->bind(SupplierInterface::class, function () {
-            return new SupplierRepository(new Supplier());
-        });
+        $this->app->bind(SupplierInterface::class, SupplierRepository::class);
 
         $this->app->bind(ProductReadInterface::class, ProductReadRepository::class);
     }
@@ -34,7 +32,7 @@ class SupplierProvider extends ServiceProvider
                 'name' => 'plugins/inventory::inventory.supplier.name',
                 'icon' => 'ti ti-truck-delivery',
                 'url' => route('inventory.suppliers.index'),
-                'permissions' => ['inventory.suppliers.index'],
+                'permissions' => [SupplierPermissions::INDEX],
             ]);
         });
     }

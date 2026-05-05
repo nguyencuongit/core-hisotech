@@ -3,7 +3,7 @@
 namespace Botble\Inventory\Domains\Supplier\Actions;
 
 use Botble\Inventory\Domains\Supplier\DTO\SupplierApprovalDTO;
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
 use Botble\Inventory\Domains\Supplier\Services\SupplierService;
 
 class ApproveSupplierAction
@@ -13,7 +13,7 @@ class ApproveSupplierAction
     ) {
     }
 
-    public function execute(Supplier $supplier, SupplierApprovalDTO $dto): Supplier
+    public function execute(SupplierEntity $supplier, SupplierApprovalDTO $dto): SupplierEntity
     {
         return $this->service->approve($supplier, $dto->note);
     }

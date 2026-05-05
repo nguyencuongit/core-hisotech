@@ -3,10 +3,10 @@
 @section('content')
     @php
         $isPendingApproval = $supplier->status?->value === \Botble\Inventory\Enums\SupplierStatusEnum::PENDING_APPROVAL->value;
-        $primaryContact = $supplier->contacts->firstWhere('is_primary', true) ?: $supplier->contacts->first();
-        $defaultAddress = $supplier->addresses->firstWhere('is_default', true) ?: $supplier->addresses->first();
-        $defaultBank = $supplier->banks->firstWhere('is_default', true) ?: $supplier->banks->first();
-        $productsCount = $supplier->supplierProducts->count();
+        $primaryContact = collect($supplier->contacts)->firstWhere('isPrimary', true) ?: collect($supplier->contacts)->first();
+        $defaultAddress = collect($supplier->addresses)->firstWhere('isDefault', true) ?: collect($supplier->addresses)->first();
+        $defaultBank = collect($supplier->banks)->firstWhere('isDefault', true) ?: collect($supplier->banks)->first();
+        $productsCount = count($supplier->products);
     @endphp
 
     <style>
@@ -476,7 +476,7 @@
                                 <x-core::icon name="ti ti-list" />
                                 {{ trans('plugins/inventory::inventory.supplier.approval_page.back_to_list') }}
                             </a>
-                            <a href="{{ route('inventory.suppliers.edit', $supplier) }}" class="btn">
+                            <a href="{{ route('inventory.suppliers.edit', $supplier->id) }}" class="btn">
                                 <x-core::icon name="ti ti-edit" />
                                 {{ trans('plugins/inventory::inventory.supplier.approval_page.go_to_edit') }}
                             </a>
@@ -499,7 +499,7 @@
                     </div>
                     <div class="metric">
                         <div class="metric-label">{{ trans('plugins/inventory::inventory.supplier.submitted_at') }}</div>
-                        <div class="metric-value">{{ $supplier->submitted_at ? BaseHelper::formatDateTime($supplier->submitted_at) : '-' }}</div>
+                        <div class="metric-value">{{ $supplier->submittedAt ? BaseHelper::formatDateTime($supplier->submittedAt) : '-' }}</div>
                     </div>
                 </div>
             </div>
@@ -524,7 +524,7 @@
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">{{ trans('plugins/inventory::inventory.supplier.tax_code') }}</div>
-                                    <div class="detail-value">{{ $supplier->tax_code ?: '-' }}</div>
+                                    <div class="detail-value">{{ $supplier->taxCode ?: '-' }}</div>
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">{{ trans('plugins/inventory::inventory.supplier.website') }}</div>
@@ -538,7 +538,7 @@
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">{{ trans('plugins/inventory::inventory.supplier.approval.requires_reapproval') }}</div>
-                                    <div class="detail-value">{{ $supplier->requires_reapproval ? trans('core/base::base.yes') : trans('core/base::base.no') }}</div>
+                                    <div class="detail-value">{{ $supplier->requiresReapproval ? trans('core/base::base.yes') : trans('core/base::base.no') }}</div>
                                 </div>
                             </div>
 
@@ -569,7 +569,7 @@
                                         @if($primaryContact?->email) · {{ $primaryContact->email }} @endif
                                     </div>
                                 </div>
-                                @if($primaryContact?->is_primary)
+                                @if($primaryContact?->isPrimary)
                                     <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.primary') }}</span>
                                 @endif
                             </div>
@@ -580,7 +580,7 @@
                                     <div class="info-title">{{ $defaultAddress?->type?->label() ?: trans('plugins/inventory::inventory.supplier.addresses') }}</div>
                                     <div class="info-sub">{{ $defaultAddress?->address ?: trans('plugins/inventory::inventory.supplier.empty') }}</div>
                                 </div>
-                                @if($defaultAddress?->is_default)
+                                @if($defaultAddress?->isDefault)
                                     <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>
                                 @endif
                             </div>
@@ -588,14 +588,14 @@
                             <div class="info-strip">
                                 <div class="info-icon"><x-core::icon name="ti ti-building-bank" /></div>
                                 <div class="info-main">
-                                    <div class="info-title">{{ $defaultBank?->bank_name ?: trans('plugins/inventory::inventory.supplier.banks') }}</div>
+                                    <div class="info-title">{{ $defaultBank?->bankName ?: trans('plugins/inventory::inventory.supplier.banks') }}</div>
                                     <div class="info-sub">
-                                        {{ $defaultBank?->account_name ?: '-' }}
-                                        @if($defaultBank?->account_number) · {{ $defaultBank->account_number }} @endif
+                                        {{ $defaultBank?->accountName ?: '-' }}
+                                        @if($defaultBank?->accountNumber) · {{ $defaultBank->accountNumber }} @endif
                                         @if($defaultBank?->branch) · {{ $defaultBank->branch }} @endif
                                     </div>
                                 </div>
-                                @if($defaultBank?->is_default)
+                                @if($defaultBank?->isDefault)
                                     <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>
                                 @endif
                             </div>
@@ -608,7 +608,7 @@
                                 <x-core::icon name="ti ti-address-book" />
                                 {{ trans('plugins/inventory::inventory.supplier.contacts') }}
                             </h2>
-                            <span class="badge bg-blue text-blue-fg">{{ number_format($supplier->contacts->count()) }}</span>
+                            <span class="badge bg-blue text-blue-fg">{{ number_format(count($supplier->contacts)) }}</span>
                         </div>
                         <div class="panel-body">
                             @forelse($supplier->contacts as $contact)
@@ -622,7 +622,7 @@
                                             @if($contact->email) · {{ $contact->email }} @endif
                                         </div>
                                     </div>
-                                    @if($contact->is_primary)
+                                    @if($contact->isPrimary)
                                         <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.primary') }}</span>
                                     @endif
                                 </div>
@@ -645,24 +645,24 @@
                                     <div class="timeline-dot"></div>
                                     <div class="timeline-content">
                                         <div class="timeline-label">{{ trans('plugins/inventory::inventory.supplier.created_by') }}</div>
-                                        <div class="timeline-value">{{ $supplier->creator?->name ?: '-' }}</div>
-                                        <div class="text-muted small">{{ $supplier->created_at ? BaseHelper::formatDateTime($supplier->created_at) : '-' }}</div>
+                                        <div class="timeline-value">{{ $supplier->creatorName ?: '-' }}</div>
+                                        <div class="text-muted small">{{ $supplier->createdAt ? BaseHelper::formatDateTime($supplier->createdAt) : '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="timeline-item">
                                     <div class="timeline-dot"></div>
                                     <div class="timeline-content">
                                         <div class="timeline-label">{{ trans('plugins/inventory::inventory.supplier.submitted_by') }}</div>
-                                        <div class="timeline-value">{{ $supplier->submitter?->name ?: '-' }}</div>
-                                        <div class="text-muted small">{{ $supplier->submitted_at ? BaseHelper::formatDateTime($supplier->submitted_at) : '-' }}</div>
+                                        <div class="timeline-value">{{ $supplier->submitterName ?: '-' }}</div>
+                                        <div class="text-muted small">{{ $supplier->submittedAt ? BaseHelper::formatDateTime($supplier->submittedAt) : '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="timeline-item">
                                     <div class="timeline-dot"></div>
                                     <div class="timeline-content">
                                         <div class="timeline-label">{{ trans('plugins/inventory::inventory.supplier.approved_by') }}</div>
-                                        <div class="timeline-value">{{ $supplier->approver?->name ?: '-' }}</div>
-                                        <div class="text-muted small">{{ $supplier->approved_at ? BaseHelper::formatDateTime($supplier->approved_at) : '-' }}</div>
+                                        <div class="timeline-value">{{ $supplier->approverName ?: '-' }}</div>
+                                        <div class="text-muted small">{{ $supplier->approvedAt ? BaseHelper::formatDateTime($supplier->approvedAt) : '-' }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -680,16 +680,15 @@
                             <span class="badge bg-blue text-blue-fg">{{ number_format($productsCount) }}</span>
                         </div>
                         <div class="panel-body">
-                            @forelse($supplier->supplierProducts as $item)
+                            @forelse($supplier->products as $item)
                                 @php
-                                    $product = $item->product;
-                                    $purchasePrice = $item->purchase_price !== null ? number_format((float) $item->purchase_price, 4) : '-';
-                                    $productSku = $product?->sku ?: $item->supplier_sku;
+                                    $purchasePrice = $item->purchasePrice !== null ? number_format((float) $item->purchasePrice, 4) : '-';
+                                    $productSku = $item->productSku ?: $item->supplierSku;
                                     $productImage = null;
 
-                                    if ($product?->image) {
+                                    if ($item->productImage) {
                                         try {
-                                            $productImage = rv_media()->getImageUrl($product->image, 'thumb');
+                                            $productImage = rv_media()->getImageUrl($item->productImage, 'thumb');
                                         } catch (\Throwable) {
                                             $productImage = null;
                                         }
@@ -698,16 +697,16 @@
 
                                 <div class="product-row">
                                     @if($productImage)
-                                        <img src="{{ $productImage }}" alt="{{ $product?->name }}" class="product-icon object-fit-cover">
+                                        <img src="{{ $productImage }}" alt="{{ $item->productName }}" class="product-icon object-fit-cover">
                                     @else
                                         <div class="product-icon"><x-core::icon name="ti ti-package" /></div>
                                     @endif
                                     <div>
-                                        <div class="product-name">{{ $product?->name ?: '#' . $item->product_id }}</div>
+                                        <div class="product-name">{{ $item->productName ?: '#' . $item->productId }}</div>
                                         <div class="product-meta">
                                             SKU: {{ $productSku ?: '-' }}
-                                            @if($item->supplier_sku && $item->supplier_sku !== $productSku)
-                                                · {{ trans('plugins/inventory::inventory.supplier.supplier_sku') }}: {{ $item->supplier_sku }}
+                                            @if($item->supplierSku && $item->supplierSku !== $productSku)
+                                                · {{ trans('plugins/inventory::inventory.supplier.supplier_sku') }}: {{ $item->supplierSku }}
                                             @endif
                                         </div>
                                         <div class="term-grid">
@@ -721,7 +720,7 @@
                                             </div>
                                             <div class="term">
                                                 <div class="term-label">{{ trans('plugins/inventory::inventory.supplier.lead_time_days') }}</div>
-                                                <div class="term-value">{{ $item->lead_time_days ?? '-' }}</div>
+                                                <div class="term-value">{{ $item->leadTimeDays ?? '-' }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -738,7 +737,7 @@
                                 <x-core::icon name="ti ti-map-2" />
                                 {{ trans('plugins/inventory::inventory.supplier.addresses') }}
                             </h2>
-                            <span class="badge bg-blue text-blue-fg">{{ number_format($supplier->addresses->count()) }}</span>
+                            <span class="badge bg-blue text-blue-fg">{{ number_format(count($supplier->addresses)) }}</span>
                         </div>
                         <div class="panel-body">
                             @forelse($supplier->addresses as $address)
@@ -748,7 +747,7 @@
                                         <div class="info-title">{{ $address->type?->label() ?: '-' }}</div>
                                         <div class="info-sub">{{ $address->address }}</div>
                                     </div>
-                                    @if($address->is_default)
+                                    @if($address->isDefault)
                                         <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>
                                     @endif
                                 </div>
@@ -764,21 +763,21 @@
                                 <x-core::icon name="ti ti-building-bank" />
                                 {{ trans('plugins/inventory::inventory.supplier.banks') }}
                             </h2>
-                            <span class="badge bg-blue text-blue-fg">{{ number_format($supplier->banks->count()) }}</span>
+                            <span class="badge bg-blue text-blue-fg">{{ number_format(count($supplier->banks)) }}</span>
                         </div>
                         <div class="panel-body">
                             @forelse($supplier->banks as $bank)
                                 <div class="info-strip">
                                     <div class="info-icon"><x-core::icon name="ti ti-credit-card" /></div>
                                     <div class="info-main">
-                                        <div class="info-title">{{ $bank->bank_name }}</div>
+                                        <div class="info-title">{{ $bank->bankName }}</div>
                                         <div class="info-sub">
-                                            {{ $bank->account_name ?: '-' }}
-                                            @if($bank->account_number) · {{ $bank->account_number }} @endif
+                                            {{ $bank->accountName ?: '-' }}
+                                            @if($bank->accountNumber) · {{ $bank->accountNumber }} @endif
                                             @if($bank->branch) · {{ $bank->branch }} @endif
                                         </div>
                                     </div>
-                                    @if($bank->is_default)
+                                    @if($bank->isDefault)
                                         <span class="badge bg-success">{{ trans('plugins/inventory::inventory.supplier.default') }}</span>
                                     @endif
                                 </div>
@@ -801,12 +800,12 @@
                                 <label for="supplier-approval-note" class="form-label">{{ trans('plugins/inventory::inventory.supplier.approval.note') }}</label>
                                 <textarea id="supplier-approval-note" class="form-control approval-note" placeholder="{{ trans('plugins/inventory::inventory.supplier.approval_page.note_placeholder') }}"></textarea>
 
-                                <form id="supplier-approve-form" method="POST" action="{{ route('inventory.suppliers.approve', $supplier) }}" data-approval-form>
+                                <form id="supplier-approve-form" method="POST" action="{{ route('inventory.suppliers.approve', $supplier->id) }}" data-approval-form>
                                     @csrf
                                     <input type="hidden" name="note">
                                 </form>
 
-                                <form id="supplier-reject-form" method="POST" action="{{ route('inventory.suppliers.reject', $supplier) }}" data-approval-form data-reject-form>
+                                <form id="supplier-reject-form" method="POST" action="{{ route('inventory.suppliers.reject', $supplier->id) }}" data-approval-form data-reject-form>
                                     @csrf
                                     <input type="hidden" name="note">
                                 </form>

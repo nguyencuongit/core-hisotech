@@ -3,7 +3,7 @@
 namespace Botble\Inventory\Domains\Supplier\Actions;
 
 use Botble\Inventory\Domains\Supplier\DTO\SupplierDTO;
-use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Entities\SupplierEntity;
 use Botble\Inventory\Domains\Supplier\Services\SupplierService;
 
 class CreateSupplierAction
@@ -13,7 +13,7 @@ class CreateSupplierAction
     ) {
     }
 
-    public function execute(SupplierDTO $dto): Supplier
+    public function execute(SupplierDTO $dto): SupplierEntity
     {
         return $this->service->create($dto->toArray());
     }

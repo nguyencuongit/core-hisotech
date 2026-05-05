@@ -44,7 +44,7 @@ Before editing any code:
    - the domain provider
    - `src/Providers/InventoryServiceProvider.php`
    - related migrations
-   - related Forms/Tables/Requests/Services/Repositories/Usecase/Actions/DTOs
+   - related Forms/Tables/Requests/Services/Repositories/UseCases/Actions/DTOs
 4. Keep feature code inside:
 
 ```txt
@@ -70,7 +70,7 @@ src/Domains/<Domain>
 
 Every domain must follow this structure.
 
-Do not treat `Services/`, `Repositories/`, `Usecase/`, `Actions/`, or `DTO/` as optional.
+Do not treat `Services/`, `Repositories/`, `UseCases/`, `Actions/`, or `DTO/` as optional.
 
 They are mandatory domain layers and must be used consistently.
 
@@ -78,19 +78,49 @@ They are mandatory domain layers and must be used consistently.
 src/Domains/<Domain>/
   Actions/
   DTO/
+  Entities/             (one file per business entity — see section 4.3)
+  Enums/                (optional)
   Forms/
   Http/
     Controllers/
     Requests/
+  Mappers/              (array/plain data → Entity conversion; no Eloquent Model import in strict DDD mode)
   Models/
+  Permissions/          (one file per domain — see section 4.2)
   Providers/
   Repositories/
     Eloquent/
     Interfaces/
   Services/
+  Support/              (optional, domain helpers/value objects)
   Tables/
-  Usecase/
+  UseCases/
 ```
+
+### Folder name standard: `UseCases/` (capital C, plural)
+
+The current standard is `UseCases/` — capital `C`, with trailing `s`.
+
+Reality matrix (as of last audit):
+
+| Domain | Folder name |
+|---|---|
+| Packing | `UseCases/` ✅ |
+| Supplier | `UseCases/` ✅ |
+| WarehouseProduct | `UseCases/` ✅ |
+| Transfer | `Usecase/` (legacy) |
+| Transactions | `Usecase/` (legacy) |
+| Warehouse | `Usecase/` (legacy) |
+| WarehouseStaff | `Usecase/` (legacy) |
+| Report | `Usecase/` (legacy) |
+| Return | `Usecase/` (legacy) |
+
+Rules:
+
+- For NEW domains: use `UseCases/` only.
+- For EXISTING legacy `Usecase/`: when a task substantially touches that domain, migrate the folder to `UseCases/` and update namespaces, imports, route handlers, and provider bindings in the same task.
+- Class file name keeps the suffix `Usecase` (capital `U`, lowercase `c`, no plural). Example: `UseCases/PackingUsecase.php` defines class `PackingUsecase`.
+- Never create a new domain that uses `Usecase/`.
 
 ### Empty mandatory layer folders
 
@@ -101,15 +131,20 @@ Required folders:
 ```txt
 Actions/
 DTO/
-Services/
+Entities/
+Mappers/
+Permissions/
 Repositories/Eloquent/
 Repositories/Interfaces/
-Usecase/
+Services/
+UseCases/
 ```
 
 If a folder would otherwise be empty, add a `.gitkeep` file so the structure is committed.
 
-Do not use an older domain folder as proof that `Actions/`, `DTO/`, or `Services/` can be skipped.
+Do not use an older domain folder as proof that `Actions/`, `DTO/`, `Entities/`, `Mappers/`, `Services/`, `Permissions/`, or `UseCases/` can be skipped.
+
+Optional folders (`Enums/`, `Support/`) only need to exist when the domain has actual files to put in them.
 
 ---
 
@@ -244,6 +279,34 @@ Do not put orchestration or multi-table workflow logic in Models.
 
 Do not use Models as service classes.
 
+## Cross-plugin Model Boundary
+
+Inventory plugin KHÔNG được import hoặc query trực tiếp Model của plugin khác.
+
+Ví dụ cấm:
+
+- `Botble\Ecommerce\Models\Product`
+- `Botble\Ecommerce\Models\ProductVariation`
+- `Botble\ACL\Models\User`
+- bất kỳ Model nào thuộc plugin/module khác ngoài Inventory
+
+Sai:
+
+```php
+use Botble\Ecommerce\Models\Product;
+
+Product::query()->find($id);
+```
+
+Đúng:
+
+- Tạo Repository/Interface riêng trong Inventory, ví dụ `ProductReadInterface`.
+- Implementation nằm trong `Repositories/Eloquent/`.
+- Bên trong repository đó dùng `DB::table('ec_products')` để đọc dữ liệu.
+- Service/UseCase/Action/Controller chỉ gọi `ProductReadInterface`.
+
+If Inventory needs foreign-plugin data, the repository/adapter must own the query and return Inventory-friendly data structures.
+
 ---
 
 ### `Providers/`
@@ -289,6 +352,10 @@ Use repositories for:
 - complex data access
 - find/update helpers
 
+Repositories/Eloquent được dùng Model thuộc Inventory domain.
+Repositories/Eloquent không được dùng Model thuộc plugin khác.
+Muốn đọc dữ liệu plugin khác thì dùng `DB::table()` qua Inventory-owned Repository/Adapter.
+
 Do not put controller-specific UI logic here.
 
 Repository methods must return query builders, collections, models, arrays, or scalar values correctly.
@@ -328,29 +395,34 @@ Use services for:
 - state changes
 - persistence coordination within one domain
 
-Services may call repositories and models.
+Services chỉ được gọi Repository Interface và Service khác.
+Services không được import/call Model trực tiếp, kể cả Model trong Inventory hay Model ngoài plugin.
 
 Services should not render admin UI.
 
 ---
 
-### `Usecase/`
+### `UseCases/`
 
 Usecases orchestrate a complete user/system operation.
 
 Use when a workflow coordinates multiple services/repositories/models.
 
-Examples:
+Examples (folder = `UseCases/`, class file suffix = `Usecase`):
 
 ```txt
-AssignmentsUsercase
-CreateGoodsReceiptUsecase
-UpdateWarehouseMapUsecase
+UseCases/AssignmentsUsecase.php       (class AssignmentsUsecase)
+UseCases/CreateGoodsReceiptUsecase.php
+UseCases/UpdateWarehouseMapUsecase.php
+UseCases/PackingUsecase.php
 ```
 
-Keep existing folder spelling as `Usecase/` unless the user asks for a naming migration.
+Folder naming rules:
 
-Do not rename `Usecase/` to `UseCase/`, `UseCases/`, or `Usecases/` without an explicit cleanup task.
+- Folder MUST be `UseCases/` for any new file or new domain.
+- Class names keep `Usecase` suffix (capital `U`, lowercase `c`, no plural).
+- If touching a legacy `Usecase/` folder for substantial work, rename it to `UseCases/` in the same task and update imports/namespaces.
+- Do not introduce a third spelling (`UseCase/`, `Usecases/`).
 
 ---
 
@@ -399,6 +471,494 @@ $dto = WarehouseStaffDTO::fromRequest($request);
 ```
 
 over passing raw request arrays across multiple layers.
+
+---
+
+## 4.1. Model Access Discipline (CRITICAL)
+
+The single biggest source of bugs in this plugin is models being queried from too many places. Fix by enforcing one rule:
+
+> **Only `Repositories/Eloquent/` files may call `Model::query()`, `new Model()`, `Model::create()`, `Model::find()`, `Model::where()`, or any direct Eloquent builder.**
+
+Every other layer goes through the repository.
+
+### What counts as "direct model access" (and what does NOT)
+
+Common confusion: agents see `use ...\Models\Supplier;` in a Service file and think it violates the rule. **It does not.** Distinguish:
+
+**❌ Direct model access (forbidden outside `Repositories/Eloquent/`):**
+- `Supplier::query()`, `Supplier::find($id)`, `Supplier::where(...)`, `Supplier::create([...])`, `Supplier::all()`
+- `new Supplier($data)` followed by `->save()` / `->push()` (using model as data-access entry point)
+- Any static call on the model class that hits the database
+
+**✅ Allowed everywhere (NOT considered "calling the model"):**
+- `use Botble\...\Models\Supplier;` — importing for type hints
+- `function create(): Supplier` — return type hint
+- `function update(Supplier $supplier)` — parameter type hint
+- `$supplier instanceof Supplier` — type check
+- `$supplier->name`, `$supplier->banks`, `$supplier->status?->value` — property/relation access on an instance that was loaded *through the repository*
+- `$supplier->getKey()`, `$supplier->save()` on an instance returned by repo (instance methods on a hydrated entity are fine)
+- `new Supplier()` passed into a Repository constructor (DI binding in a Provider) — this is wiring, not data access
+
+Rule of thumb: if the line could appear inside a DTO (no DB round-trip), it is allowed. If the line *fetches or persists* via the model class statically, it is forbidden outside the repository.
+
+### Allowed vs forbidden by layer
+
+| Layer | May call Model directly? | What it MUST use instead |
+|---|---|---|
+| `Repositories/Eloquent/` | ✅ Yes — this is its job | — |
+| `Services/` | ❌ No | Inject `XxxInterface`, call `$this->repo->method()` |
+| `UseCases/` | ❌ No | Inject `XxxInterface` + service |
+| `Actions/` | ❌ No | Same as Service |
+| `Http/Controllers/` | ❌ No | Inject Usecase or Service |
+| `Forms/` | ⚠️ Limited | May call repository for dropdown choices. Avoid `Model::pluck` directly. |
+| `Tables/` | ⚠️ Limited | Botble's `TableAbstract::query()` is allowed to use `$this->getModel()->query()` because the framework expects an Eloquent builder return. Add scoping (warehouse_ids) inline here. |
+| `Http/Requests/` | ⚠️ Read-only | `exists:` validation rule may reference table names; avoid `Model::find` inside `authorize()` — call a repository method. |
+
+### Why this matters
+
+A bug seen in code review: `validatePayload` in service queries `Export::query()->find()` directly. When the warehouse-scoping rule changes, you have to hunt `Model::query()` through 30 files. With repository discipline, scoping change touches 1 file.
+
+### Example — wrong
+
+```php
+// In PackingService.php
+$export = Export::query()->find($exportId);              // ❌
+$activePacking = PackingList::query()->where(...)->first(); // ❌
+$exportItems = ExportItem::query()->whereIn(...)->get();    // ❌
+```
+
+### Example — correct
+
+```php
+// In PackingService.php (constructor injection)
+public function __construct(
+    protected PackingInterface $packings,
+    protected ExportRepositoryInterface $exports,
+) {}
+
+// usage
+$export = $this->exports->findOrFail($exportId);
+$activePacking = $this->packings->findActiveByExportId($exportId, $excludeId);
+$exportItems = $this->exports->itemsByIds($exportItemIds);
+```
+
+### Repository method naming
+
+Method names must read as business intent, not SQL:
+
+```txt
+findActiveByExportId         (not: query()->where(...)->first())
+itemsByIds                   (not: whereIn(...)->get())
+packedQuantitiesForList      (not: selectRaw->groupBy)
+```
+
+If a method exists only to wrap one Eloquent call, that is still correct. Centralization wins over brevity.
+
+### Exceptions (must comment why)
+
+Two narrow exceptions are allowed without going through repository:
+
+1. `lockForUpdate()` inside a `DB::transaction()` in a Service — when the lock semantics matter and pulling through a repository would lose them. Add a `// LOCK:` comment above the call.
+2. `Model::factory()` in tests/seeders.
+
+Any other direct model access in non-repository code is a violation.
+
+### Enforcement checklist before finishing a task
+
+```powershell
+# Find direct model access outside repositories (false positives possible — review manually)
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Where-Object { $_.FullName -notmatch 'Repositories\\Eloquent' } |
+  Select-String -Pattern '::query\(\)|->newQuery\(\)' |
+  Select-Object Path, LineNumber, Line
+```
+
+If the result includes a file outside `Repositories/Eloquent/`, either move the call into a repository method or document the exception.
+
+---
+
+## 4.2. Domain Permissions Centralization (CRITICAL)
+
+Hard-coding permission strings like `'packing.create'` across routes/tables/forms/menus causes silent breakage when the slug changes. Fix by defining permissions ONCE per domain.
+
+### One file per domain
+
+Each domain has exactly one Permissions class:
+
+```txt
+src/Domains/<Domain>/Permissions/<Domain>Permissions.php
+```
+
+The class holds public string constants only.
+The only allowed method is `all()` when config/permissions.php needs auto-registration.
+No other methods or logic are allowed.
+
+### Example
+
+```php
+<?php
+
+namespace Botble\Inventory\Domains\Packing\Permissions;
+
+final class PackingPermissions
+{
+    public const INDEX   = 'packing.index';
+    public const CREATE  = 'packing.create';
+    public const EDIT    = 'packing.edit';
+    public const DESTROY = 'packing.destroy';
+
+    /**
+     * Used by config/permissions.php auto-registration.
+     */
+    public static function all(): array
+    {
+        return [
+            self::INDEX,
+            self::CREATE,
+            self::EDIT,
+            self::DESTROY,
+        ];
+    }
+}
+```
+
+### Where to reference these constants
+
+Every place that checks or declares a permission for this domain MUST import the constant. Hard-coded strings are forbidden.
+
+#### Routes (`routes/web.php`)
+
+```php
+use Botble\Inventory\Domains\Packing\Permissions\PackingPermissions;
+
+Route::group(['prefix' => 'packing', 'as' => 'packing.'], function () {
+    Route::get('/', [
+        'uses' => PackingController::class . '@index',
+        'as' => 'index',
+        'permission' => PackingPermissions::INDEX,   // ✅
+    ]);
+
+    Route::post('/create', [
+        'uses' => PackingController::class . '@store',
+        'as' => 'store',
+        'permission' => PackingPermissions::CREATE,  // ✅
+    ]);
+});
+```
+
+Wrong:
+
+```php
+'permission' => 'packing.create',  // ❌ hard-coded
+```
+
+#### Tables (`Tables/<Domain>Table.php`)
+
+```php
+use Botble\Inventory\Domains\Packing\Permissions\PackingPermissions;
+
+EditAction::make()->permission(PackingPermissions::EDIT);          // ✅
+DeleteBulkAction::make()->permission(PackingPermissions::DESTROY); // ✅
+```
+
+#### Forms (`Forms/<Domain>Form.php`)
+
+When a form needs to show/hide a button by permission:
+
+```php
+if (auth()->user()?->hasPermission(PackingPermissions::EDIT)) { ... }
+```
+
+#### Controllers — ad-hoc gates
+
+```php
+abort_unless(
+    auth()->user()?->hasPermission(PackingPermissions::CREATE)
+    || auth()->user()?->hasPermission(PackingPermissions::EDIT),
+    403
+);
+```
+
+#### Provider — menu registration
+
+```php
+DashboardMenu::make()
+    ->registerItem([
+        'permissions' => [PackingPermissions::INDEX],
+        // ...
+    ]);
+```
+
+#### `config/permissions.php`
+
+Either reference the constants directly, or add a comment pinning the source:
+
+```php
+// Source of truth: Domains/Packing/Permissions/PackingPermissions.php
+[
+    'name'  => 'Quản lý phiếu đóng gói',
+    'flag'  => 'packing.index',  // matches PackingPermissions::INDEX
+    'parent_flag' => 'inventory.index',
+],
+```
+
+### Rules
+
+- Constants are `public const`, all UPPER_SNAKE_CASE.
+- Constant value is the bare permission flag (no `inventory.` prefix unless the whole plugin uses that style — see section 19).
+- Never mix `EDIT` and `UPDATE`, or `DESTROY` and `DELETE`. Pick one verb per CRUD slot per the convention in section 19.
+- When adding a new permission to a domain:
+  1. Add the constant to `<Domain>Permissions.php`
+  2. Reference it from routes
+  3. Reference it from table/menu/form
+  4. Add the matching entry to `config/permissions.php`
+- When deleting a permission, delete from all 4 places in the same task.
+
+### Why this works
+
+When an agent edits anything in a domain, it sees `<Domain>Permissions.php` first (it is in the standard mandatory layer list) and copies the constant. It does not invent a new string. Renaming a permission becomes a 1-file change with a stable IDE rename refactor — instead of grepping the whole plugin.
+
+---
+
+## 4.3. Domain Entity Layer (CRITICAL)
+
+Even with section 4.1 enforced, business logic still leaks Eloquent details (relations, accessors, framework events) up into Services, Usecases, and Actions. Fix by introducing a **Domain Entity** layer: immutable PHP objects that represent the business entity *without any Eloquent inheritance or framework coupling*.
+
+> **Services, Usecases, Actions, and DTOs MUST consume `XxxEntity`, not `XxxModel`. The Eloquent Model is allowed only in `Repositories/Eloquent/` and documented framework-boundary files such as Forms, Tables, and Provider DI. Mappers MUST NOT import Eloquent Models in strict DDD mode.**
+
+### Folder structure (mandatory when this rule applies)
+
+```txt
+src/Domains/<Domain>/
+├── Entities/                    ← NEW — pure PHP, no Eloquent
+│   ├── <Domain>Entity.php       ← root aggregate
+│   └── <Domain><Child>Entity.php
+├── Mappers/                     ← NEW — single conversion point
+│   └── <Domain>Mapper.php
+├── Models/                      ← Eloquent (existing)
+├── Repositories/
+│   ├── Eloquent/                ← imports Model + Mapper, returns Entity
+│   └── Interfaces/              ← signatures use Entity
+├── Services/                    ← consumes Entity ONLY
+├── UseCases/                    ← consumes Entity ONLY
+├── Actions/                     ← consumes Entity ONLY
+└── …
+```
+
+### Entity rules
+
+- **Immutable**: all properties `public readonly`. No setters.
+- **Plain PHP**: no `extends Model`, no `use HasFactory`, no Eloquent traits.
+- **Self-contained**: holds the data the domain needs — primitives, enums, child entities, plain arrays. NEVER holds an Eloquent `Collection` or another Eloquent Model.
+- **Pure behavior allowed**: methods that compute from own state (`isApproved()`, `requiresReapproval()`, `primaryContact()`) are encouraged.
+- **No DB calls**: an Entity method MUST NOT touch the database, queue events, or call repositories.
+- **Constructed via `__construct` or named `from*` factories** — never auto-hydrated by a framework.
+
+### Example — entity
+
+```php
+<?php
+
+namespace Botble\Inventory\Domains\Supplier\Entities;
+
+use Botble\Inventory\Enums\SupplierStatusEnum;
+use Botble\Inventory\Enums\SupplierTypeEnum;
+use Carbon\CarbonImmutable;
+
+final class SupplierEntity
+{
+    /**
+     * @param  list<SupplierContactEntity>  $contacts
+     * @param  list<SupplierAddressEntity>  $addresses
+     * @param  list<SupplierBankEntity>     $banks
+     * @param  list<SupplierProductEntity>  $products
+     * @param  list<SupplierApprovalEntity> $approvals
+     */
+    public function __construct(
+        public readonly int|string $id,
+        public readonly string $code,
+        public readonly string $name,
+        public readonly ?SupplierTypeEnum $type,
+        public readonly ?string $taxCode,
+        public readonly ?string $website,
+        public readonly ?string $note,
+        public readonly ?SupplierStatusEnum $status,
+        public readonly array $metadata,
+        public readonly ?int $createdBy,
+        public readonly ?int $submittedBy,
+        public readonly ?CarbonImmutable $submittedAt,
+        public readonly ?int $approvedBy,
+        public readonly ?CarbonImmutable $approvedAt,
+        public readonly ?string $approvalNote,
+        public readonly bool $requiresReapproval,
+        public readonly array $contacts = [],
+        public readonly array $addresses = [],
+        public readonly array $banks = [],
+        public readonly array $products = [],
+        public readonly array $approvals = [],
+    ) {}
+
+    public function isApproved(): bool
+    {
+        return $this->status?->isApproved() ?? false;
+    }
+
+    public function primaryContact(): ?SupplierContactEntity
+    {
+        foreach ($this->contacts as $contact) {
+            if ($contact->isPrimary) {
+                return $contact;
+            }
+        }
+        return $this->contacts[0] ?? null;
+    }
+}
+```
+
+### Mapper rules
+
+- One file per domain: `Mappers/<Domain>Mapper.php`.
+- Static methods only: `toEntity`, `toEntities`, `toContactEntity`, ...
+- Mapper MUST NOT import Eloquent Models.
+- Mapper accepts array/plain data only and returns Entity.
+- Repository/Eloquent is responsible for converting Eloquent Model to array before calling Mapper.
+- No DB calls in Mapper.
+- Mapper may import Entities, Enums, Carbon/value objects only.
+
+### Repository rules under this pattern
+
+- **Read methods** return Entity (or `?Entity`, `list<Entity>`).
+- **Write methods** accept primitives or DTO, return Entity.
+- Repository/Eloquent is the only layer that touches Eloquent Models.
+- It queries Inventory-owned Eloquent Models internally, converts them to array/plain data, then calls Mapper before returning Entity.
+- Mapper does not receive or import Eloquent Models.
+- Lock-and-update flows: lock with Eloquent inside repo, update, then map to Entity for the return value.
+
+### Allowed vs forbidden by layer (with Entity rule applied)
+
+| Layer | Imports Model? | Imports Entity? |
+|---|---|---|
+| `Models/` | ✅ self | ❌ |
+| `Entities/` | ❌ | ✅ self |
+| `Mappers/` | ❌ | ✅ |
+| `Repositories/Eloquent/` | ✅ Inventory-owned Models only | ✅ |
+| `Repositories/Interfaces/` | ❌ | ✅ |
+| `Services/` | ❌ | ✅ |
+| `UseCases/` | ❌ | ✅ |
+| `Actions/` | ❌ | ✅ |
+| `DTO/` | ❌ | ❌ (DTOs are pure data, no entity inside) |
+| `Http/Requests/` | ❌ | ❌ |
+| `Http/Controllers/` | ⚠️ route binding only — convert immediately to Entity via repo | ✅ |
+| `Forms/` | ⚠️ Botble framework boundary | ⚠️ Use Entity for read; Model required by `setModel()` |
+| `Tables/` | ⚠️ Botble framework boundary — `model(Model::class)` required | ❌ |
+| `Providers/` | ⚠️ DI binding only (`new Model()` for repo constructor) | ❌ |
+
+### Documented framework-boundary exceptions
+
+These exceptions exist because Botble's `FormAbstract` / `TableAbstract` / repository binding require an Eloquent class. Each MUST carry the comment `// FRAMEWORK-BOUNDARY: Botble requires Eloquent Model here.` directly above the offending line:
+
+```php
+class SupplierTable extends TableAbstract
+{
+    public function setup(): void
+    {
+        $this
+            // FRAMEWORK-BOUNDARY: Botble requires Eloquent Model here.
+            ->model(Supplier::class)
+            // …
+    }
+}
+```
+
+```php
+class SupplierProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->bind(SupplierInterface::class, function () {
+            // FRAMEWORK-BOUNDARY: Botble requires Eloquent Model here.
+            return new SupplierRepository(new Supplier());
+        });
+    }
+}
+```
+
+A reviewer who sees Model imported anywhere else without this comment must reject the change.
+
+### Controller boundary
+
+Controllers may receive a `Model` from Laravel's route model binding. Convert to Entity at the first line of the action — do not pass Model deeper:
+
+```php
+// ✅
+public function show(Supplier $supplier, SupplierUsecase $usecase)
+{
+    $entity = $usecase->loadForShow($supplier->getKey());  // returns SupplierEntity
+    return view('plugins/inventory::suppliers.show', ['supplier' => $entity]);
+}
+
+// ❌
+public function show(Supplier $supplier, SupplierUsecase $usecase)
+{
+    $supplier = $usecase->loadForShow($supplier);   // Usecase signature took Model — leak.
+    return view('plugins/inventory::suppliers.show', compact('supplier'));
+}
+```
+
+### Service rule restated
+
+A Service file MUST satisfy ALL of:
+
+1. Zero `use ...\Models\` import (except in test files).
+2. All injected dependencies are interfaces (`XxxInterface`) or other services.
+3. Every method that returns an entity declares `XxxEntity` as return type.
+4. Every method that accepts an entity declares `XxxEntity` as parameter type.
+
+If a Service needs `$entity->save()`-like semantics, it calls `$this->repo->update($entity, $changes)` — repo handles persistence, returns the updated Entity.
+
+### Enforcement checklist before finishing a task
+
+```powershell
+# Find Model imports in business-logic layer (Services, Usecases, Actions)
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Where-Object { $_.FullName -match '\\(Services|UseCases|Actions)\\' } |
+  Select-String -Pattern 'use Botble\\Inventory\\Domains\\\w+\\Models\\' |
+  Select-Object Path, LineNumber, Line
+```
+
+If the result is non-empty, either remove the Model import (use Entity) or — only if the file is `Mappers/` or `Repositories/Eloquent/` — confirm it is in the allowed list above.
+
+# Find external plugin Model imports inside Inventory plugin
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Select-String -Pattern 'use Botble\\(Ecommerce|ACL|Marketplace|Payment|Blog)\\.*\\Models\\' |
+  Select-Object Path, LineNumber, Line
+
+If any result appears, replace it with an Inventory-owned Repository/Adapter that uses `DB::table()`.
+
+# Strict DDD: Mappers must not import Eloquent Models
+Get-ChildItem -Path 'platform/plugins/inventory/src/Domains' -Recurse -Filter '*.php' |
+  Where-Object { $_.FullName -match '\\Mappers\\' } |
+  Select-String -Pattern 'use Botble\\Inventory\\Domains\\\w+\\Models\\' |
+  Select-Object Path, LineNumber, Line
+
+If any result appears, the Mapper is not strict-DDD compliant.
+
+### Why this matters
+
+When the storage layer changes (column rename, ORM swap, computed field migration), only `Mappers/` and `Repositories/Eloquent/` are affected. Service/Usecase/Action remain untouched because they speak Entity, not Model. This is the same pattern as Hexagonal / Clean Architecture's "domain over infrastructure" rule — applied to a Botble plugin.
+
+### Migration plan when adopting this rule on an existing domain
+
+1. Create `Entities/` and `Mappers/` folders.
+2. Define Entity classes mirroring the Model's persisted state (NOT every accessor — only what the domain reads).
+3. Write Mapper static methods.
+4. Add return-type-only changes to `Repositories/Interfaces/` (Entity instead of Model).
+5. Update `Repositories/Eloquent/` to call Mapper before returning.
+6. Update Service one method at a time; run tests after each.
+7. Update Usecase + Actions.
+8. Update Controllers (last — route model binding still gives Model; convert via Usecase).
+9. Run the enforcement grep above; resolve every hit.
 
 ---
 
@@ -468,26 +1028,33 @@ SyncWarehouseStaffAssignmentsAction
 WarehouseStaffUsecase
 ```
 
-### Existing legacy names
+### Existing legacy names — migration targets
 
-If a domain already has an existing spelling, preserve it unless the task explicitly asks for cleanup.
-
-Current known legacy name:
+The following legacy names exist in code and should be migrated when their domain is touched substantially:
 
 ```txt
 src/Domains/WarehouseStaff/Usecase/AssignmentsUsercase.php
+                          └─ folder ─┘ └── class typo "Usercase" ──┘
 ```
 
-Do not rename this file casually because existing code may depend on it.
+Target after migration:
 
-If renaming is requested, update:
+```txt
+src/Domains/WarehouseStaff/UseCases/AssignmentsUsecase.php
+```
 
-- class name
+When migrating, update in one atomic task:
+
+- folder rename `Usecase/` → `UseCases/`
+- class typo fix `AssignmentsUsercase` → `AssignmentsUsecase`
 - namespace
-- imports
+- all imports
 - controller usage
 - provider bindings if any
 - lint and route checks
+- composer dump-autoload
+
+Do not perform half-migrations. Do not rename folder without fixing class typo at the same time.
 
 ---
 
@@ -526,7 +1093,7 @@ Repositories/Interfaces/WarehouseStaffAssignmentInterface.php
 Services/
 Tables/WarehouseStaffTable.php
 Tables/WarehousePositionTable.php
-Usecase/AssignmentsUsercase.php
+UseCases/AssignmentsUsecase.php
 ```
 
 If `Actions/`, `DTO/`, or `Services/` has no concrete class yet, keep the folder with `.gitkeep`.
@@ -751,12 +1318,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Warehouse product configuration uses:
@@ -805,12 +1373,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Known files:
@@ -855,12 +1424,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Known files:
@@ -908,12 +1478,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Rules:
@@ -943,12 +1514,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Rules:
@@ -978,12 +1550,13 @@ Forms/
 Http/Controllers/
 Http/Requests/
 Models/
+Permissions/
 Providers/
 Repositories/Eloquent/
 Repositories/Interfaces/
 Services/
 Tables/
-Usecase/
+UseCases/
 ```
 
 Rules:
@@ -1234,12 +1807,15 @@ Before final response, confirm:
   - `Http/Controllers/`
   - `Http/Requests/`
   - `Models/`
+  - `Permissions/`
   - `Providers/`
   - `Repositories/Eloquent/`
   - `Repositories/Interfaces/`
   - `Services/`
   - `Tables/`
-  - `Usecase/`
+  - `UseCases/` (capital `C`, plural)
+- No file outside `Repositories/Eloquent/` calls `Model::query()`, `new Model()`, or `Model::create()` directly.
+- All permission strings come from `<Domain>Permissions` constants — no hardcoded `'packing.create'` strings in routes/tables/forms/menus.
 - Empty mandatory folders have `.gitkeep`.
 - Routes point to domain controllers.
 - Provider registration and domain provider bindings are correct.

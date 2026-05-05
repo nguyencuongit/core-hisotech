@@ -4,6 +4,7 @@ namespace Botble\Inventory\Domains\Supplier\Tables;
 
 use Botble\Base\Facades\Html;
 use Botble\Inventory\Domains\Supplier\Models\Supplier;
+use Botble\Inventory\Domains\Supplier\Permissions\SupplierPermissions;
 use Botble\Table\Abstracts\TableAbstract;
 use Botble\Table\Actions\DeleteAction;
 use Botble\Table\Actions\EditAction;
@@ -21,11 +22,12 @@ class SupplierTable extends TableAbstract
     {
         $this
             ->setView('plugins/inventory::suppliers.table')
+            // FRAMEWORK-BOUNDARY: Botble requires Eloquent Model here.
             ->model(Supplier::class)
-            ->addHeaderAction(CreateHeaderAction::make()->route('inventory.suppliers.create')->permission('inventory.suppliers.create'))
+            ->addHeaderAction(CreateHeaderAction::make()->route('inventory.suppliers.create')->permission(SupplierPermissions::CREATE))
             ->addActions([
-                EditAction::make()->route('inventory.suppliers.edit')->permission('inventory.suppliers.edit'),
-                DeleteAction::make()->route('inventory.suppliers.destroy')->permission('inventory.suppliers.delete'),
+                EditAction::make()->route('inventory.suppliers.edit')->permission(SupplierPermissions::EDIT),
+                DeleteAction::make()->route('inventory.suppliers.destroy')->permission(SupplierPermissions::DESTROY),
             ])
             ->addColumns([
                 FormattedColumn::make('code')
@@ -87,7 +89,7 @@ class SupplierTable extends TableAbstract
                 CreatedAtColumn::make(),
             ])
             ->addBulkActions([
-                DeleteBulkAction::make()->permission('inventory.suppliers.delete'),
+                DeleteBulkAction::make()->permission(SupplierPermissions::DESTROY),
             ])
             ->queryUsing(function (Builder $query): void {
                 $query->select(['id', 'code', 'name', 'type', 'tax_code', 'status', 'created_at'])
